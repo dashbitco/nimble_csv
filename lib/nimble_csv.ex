@@ -5,11 +5,11 @@ defmodule NimbleCSV do
   It works by building highly-inlined CSV parsers, designed
   to work with strings, enumerables and streams:
 
-      NimbleCSV.define(MyParser, separator: ",", escape: "\"")
+      NimbleCSV.define(MyParser, separator: "\t", escape: "\"")
 
   Once defined, we can parse data accordingly:
 
-      iex> MyParser.parse_string "name,age\njohn,27"
+      iex> MyParser.parse_string "name\tage\njohn\t27"
       [["john","27"]]
 
   See the `define/2` function for the list of functions that
@@ -23,7 +23,7 @@ defmodule NimbleCSV do
   expects developers to handle those explicitly later.
   For example:
 
-      "name,age\njohn,27"
+      "name\tage\njohn\t27"
       |> MyParser.parse_string
       |> Enum.map(fn [name, age] ->
         %{name: name, age: String.to_integer(age)}
@@ -43,7 +43,7 @@ defmodule NimbleCSV do
   By default this library ships with `NimbleCSV.RFC4180`, which
   is the most common implementation of CSV parsing/dumping available
   using comma as separators and double-quote as escape. If you
-  want to use it your codebase, simply alias it to CSV and enjoy:
+  want to use it in your codebase, simply alias it to CSV and enjoy:
 
       iex> alias NimbleCSV.RFC4180, as: CSV
       iex> CSV.parse_string "name,age\njohn,27"
@@ -54,7 +54,7 @@ defmodule NimbleCSV do
   NimbleCSV can dump any enumerable to either iodata or to streams:
 
       iex> IO.iodata_to_binary MyParser.dump_to_iodata([~w(name age), ~w(mary 28)])
-      "name,age\nmary,28\n"
+      "name\tage\nmary\t28\n"
 
       iex> MyParser.dump_to_stream([~w(name age), ~w(mary 28)])
       #Stream<...>
@@ -78,9 +78,9 @@ defmodule NimbleCSV do
 
   It exports the following parser functions:
 
-    * `parse_enumerable/2` - eager parsing from a list or another enumerable
-    * `parse_string/2` - eagar parsing from a string
-    * `parse_stream/2` - lazy parsing from a stream
+    * `parse_enumerable/2` - eager parsing from a list or another enumerable and returns a list of rows
+    * `parse_string/2` - eagar parsing from a string and returns a list of rows
+    * `parse_stream/2` - lazy parsing from a stream and returns a stream of rows
 
   The second argument for the functions above is a list of options
   currently supporting:
@@ -104,7 +104,7 @@ defmodule NimbleCSV do
       ## Parser
 
       @doc """
-      Lazily parses CSV from a stream.
+      Lazily parses CSV from a stream and returns a stream of rows.
       """
       def parse_stream(stream, opts \\ []) do
         {state, separator, escape} = init_parser(opts)
@@ -112,7 +112,7 @@ defmodule NimbleCSV do
       end
 
       @doc """
-      Eagerly parses CSV from an enumerable.
+      Eagerly parses CSV from an enumerable and returns a list of rows.
       """
       def parse_enumerable(enumerable, opts \\ []) do
         {state, separator, escape} = init_parser(opts)
@@ -122,7 +122,7 @@ defmodule NimbleCSV do
       end
 
       @doc """
-      Eagerly parses CSV from a string.
+      Eagerly parses CSV from a string and returns a list of rows.
       """
       def parse_string(string, opts \\ []) do
         newline = :binary.compile_pattern(["\r\n", "\n"])
