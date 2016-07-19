@@ -45,7 +45,7 @@ defmodule NimbleCSVTest do
   test "parse_string/2 with whitespace" do
     assert CSV.parse_string("""
     name,last,year
-     john , doe , 1986
+    \sjohn , doe , 1986\s
     """) == [[" john ", " doe ", " 1986 "]]
   end
 
