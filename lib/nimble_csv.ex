@@ -286,5 +286,5 @@ defmodule NimbleCSV do
 end
 
 NimbleCSV.define(NimbleCSV.RFC4180, separator: ",", escape: "\"", moduledoc: """
-A CSV parser that uses comma as separator and double-quotes as escape according to RFC4148.
+A CSV parser that uses comma as separator and double-quotes as escape according to RFC4180.
 """)
