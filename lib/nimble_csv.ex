@@ -34,14 +34,20 @@ defmodule NimbleCSV do
   to parse files line by line lazily:
 
       "path/to/csv/file"
+      |> File.stream!(read_ahead: 100_000)
       |> MyParser.parse_stream
       |> Stream.map(fn [name, age] ->
         %{name: name, age: String.to_integer(age)}
       end)
 
   By default this library ships with `NimbleCSV.RFC4180`, which
-  is the most common implementation of CSV parsing available
-  using comma as separators and double-quote as escape.
+  is the most common implementation of CSV parsing/dumping available
+  using comma as separators and double-quote as escape. If you
+  want to use it your codebase, simply alias it to CSV and enjoy:
+
+      iex> alias NimbleCSV.RFC4180, as: CSV
+      iex> CSV.parse_string "name,age\njohn,27"
+      [["john","27"]]
 
   ## Dumping
 
@@ -49,6 +55,9 @@ defmodule NimbleCSV do
 
       iex> IO.iodata_to_binary MyParser.dump_to_iodata([~w(name age), ~w(mary 28)])
       "name,age\nmary,28\n"
+
+      iex> MyParser.dump_to_stream([~w(name age), ~w(mary 28)])
+      #Stream<...>
 
   """
 
