@@ -3,7 +3,8 @@
 NimbleCSV is a simple and extremely fast CSV parsing/dumping library for Elixir. Its performance comes from allowing developers to define custom parsers/dumpers which rely on binary patterns for efficiency:
 
 ```elixir
-# Define the parser
+# Define the parser (this is equivalent to calling
+# defmodule and should be done at the top of a file)
 NimbleCSV.define(MyParser, separator: "\t", escape: "\"")
 
 # Parse the data

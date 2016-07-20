@@ -3,7 +3,8 @@ defmodule NimbleCSV do
   NimbleCSV is a small and fast parsing and dumping library.
 
   It works by building highly-inlined CSV parsers, designed
-  to work with strings, enumerables and streams:
+  to work with strings, enumerables and streams. At the top
+  of your file, you can define your own parser module:
 
       NimbleCSV.define(MyParser, separator: "\t", escape: "\"")
 
