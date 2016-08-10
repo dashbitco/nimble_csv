@@ -17,6 +17,7 @@ NimbleCSV provides both eager and lazy (streaming) parsing as well as data dumpi
 ```elixir
 # Lazily parses a file stream
 "path/to/file"
+|> File.stream!
 |> MyParser.parse_stream
 |> Stream.map(fn [name, age] ->
   %{name: name, age: String.to_integer(age)}
