@@ -50,6 +50,32 @@ defmodule NimbleCSV do
       iex> CSV.parse_string "name,age\njohn,27"
       [["john","27"]]
 
+  ### Binary references
+
+  One of the reasons behind NimbleCSV performance is that it performs
+  parsing by matching on binaries and extracting those fields as
+  binary references. Therefore if you have a row such as:
+
+      one,two,three,four,five
+
+  NimbleCSV will return a list of `["one", "two", "three", "four", "five"]`
+  where each element references the original row. For this reason, if
+  you plan to keep the parsed data around in the parsing process or even
+  send it to another process, you may want to copy the data before doing
+  the transfer.
+
+  For example, in the `parse_stream` example in the previous section,
+  we could rewrite the `Stream.map/2` operation to explicitly copy any
+  field that is stored as a binary:
+
+      "path/to/csv/file"
+      |> File.stream!(read_ahead: 100_000)
+      |> MyParser.parse_stream
+      |> Stream.map(fn [name, age] ->
+        %{name: :binary.copy(name),
+          age: String.to_integer(age)}
+      end)
+
   ## Dumping
 
   NimbleCSV can dump any enumerable to either iodata or to streams:
