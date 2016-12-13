@@ -97,11 +97,16 @@ defmodule NimbleCSV do
 
   It accepts the following options:
 
-    * `:separator`- the CSV separator, defaults to `","`
-    * `:escape`- the CSV escape, defaults to `"\""`
     * `:moduledoc` - the documentation for the generated module
-    * `:newlines` - a list of acceptable newline entries.
-      The first entry in the list is the one used for dumping, defaults to `["\n", "\r\n"]`
+    * `:separator`- the CSV separator character, defaults to `","`
+    * `:newlines` - the list of supported newlines, defaults to `["\n", "\r\n"]`
+    * `:escape`- the CSV escape character, defaults to `"\""`
+    * `:reserved` - the list of characters to be escaped when dumping, defaults to `["\"", "\r", "\n"]`
+
+  The first entry in the `:newlines` list is the one used for
+  separating rows when dumping. If changing the newlines entries,
+  consider also changing the `:reserved` characters for proper
+  escaping when dumping.
 
   ## Parser/Dumper API
 
@@ -129,6 +134,7 @@ defmodule NimbleCSV do
       @moduledoc Keyword.get(options, :moduledoc)
       @separator Keyword.get(options, :separator, ",")
       @escape Keyword.get(options, :escape, "\"")
+      @reserved Keyword.get(options, :reserved, ["\"", "\n", "\r"])
       @newlines Keyword.get(options, :newlines, ["\n", "\r\n"])
 
       ## Parser
@@ -330,7 +336,7 @@ defmodule NimbleCSV do
       @replacement @escape <> @escape
 
       defp init_dumper() do
-        :binary.compile_pattern([@escape | @newlines])
+        :binary.compile_pattern(@reserved)
       end
 
       defp dump([], _check) do
