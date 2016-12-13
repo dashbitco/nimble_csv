@@ -150,9 +150,15 @@ defmodule NimbleCSV do
 
       @doc """
       Eagerly parses CSV from a string and returns a list of rows.
+
+      The second argument is a list of options
+      currently supporting:
+
+        * `:newline` - a list of characters to match for newline instead of the
+                       default `["\r\n", "\n"]
       """
       def parse_string(string, opts \\ []) do
-        newline = :binary.compile_pattern(["\r\n", "\n"])
+        newline = :binary.compile_pattern(opts[:newline] || ["\r\n", "\n"])
         {0, byte_size(string)}
         |> Stream.unfold(fn
           {_, 0} ->
