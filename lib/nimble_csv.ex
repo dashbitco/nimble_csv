@@ -100,6 +100,8 @@ defmodule NimbleCSV do
     * `:separator`- the CSV separator, defaults to `","`
     * `:escape`- the CSV escape, defaults to `"\""`
     * `:moduledoc` - the documentation for the generated module
+    * `:newlines` - a list of acceptable newline entries.
+      The first entry in the list is the one used for dumping, defaults to `["\n", "\r\n"]`
 
   ## Parser/Dumper API
 
@@ -112,7 +114,7 @@ defmodule NimbleCSV do
   The second argument for the functions above is a list of options
   currently supporting:
 
-    * `:headers` - if headers exist and, if so, they are discarded
+    * `:headers` - when false, no longer discard the first row
 
   It also exports the following dump functions:
 
@@ -127,6 +129,7 @@ defmodule NimbleCSV do
       @moduledoc Keyword.get(options, :moduledoc)
       @separator Keyword.get(options, :separator, ",")
       @escape Keyword.get(options, :escape, "\"")
+      @newlines Keyword.get(options, :newlines, ["\n", "\r\n"])
 
       ## Parser
 
@@ -152,7 +155,7 @@ defmodule NimbleCSV do
       Eagerly parses CSV from a string and returns a list of rows.
       """
       def parse_string(string, opts \\ []) do
-        newline = :binary.compile_pattern(["\r\n", "\n"])
+        newline = :binary.compile_pattern(@newlines)
         {0, byte_size(string)}
         |> Stream.unfold(fn
           {_, 0} ->
@@ -198,6 +201,33 @@ defmodule NimbleCSV do
         to_enum separator(line, [], state, separator, escape)
       end
 
+      defmacrop newlines_separator!() do
+        newlines_offsets =
+          for {newline, i} <- Enum.with_index(@newlines) do
+            quote do
+              unquote(Macro.var(:"count#{i}", Elixir)) = offset - unquote(byte_size(newline))
+            end
+          end
+
+        newlines_clauses =
+          for {newline, i} <- Enum.with_index(@newlines) do
+            quote do
+              <<prefix::size(unquote(Macro.var(:"count#{i}", Elixir)))-binary, unquote(newline)>> -> prefix
+            end |> hd()
+          end
+
+        newlines_clauses =
+          newlines_clauses ++ (quote do
+            prefix -> prefix
+          end)
+
+        quote do
+          offset = byte_size(var!(line))
+          unquote(newlines_offsets)
+          case var!(line), do: unquote(newlines_clauses)
+        end
+      end
+
       defp separator(line, row, state, separator, escape) do
         case :binary.match(line, escape) do
           {0, _} ->
@@ -214,39 +244,50 @@ defmodule NimbleCSV do
             end
 
           :nomatch ->
-            offset = byte_size(line)
-            crlf = offset - 2
-            lf = offset - 1
-            pruned =
-              case line do
-                <<prefix::size(crlf)-binary, ?\r, ?\n>> -> prefix
-                <<prefix::size(lf)-binary, ?\n>> -> prefix
-                prefix -> prefix
-              end
+            pruned = newlines_separator!()
             {state, row ++ :binary.split(pruned, separator, [:global])}
         end
       end
 
-      defp escape(line, entry, row, state, separator, escape) do
-        case :binary.match(line, escape) do
-          {offset, _} ->
-            case line do
-              <<prefix::size(offset)-binary, @escape, @escape, rest::binary>> ->
-                escape(rest, entry <> prefix <> <<@escape>>, row, state, separator, escape)
-              <<prefix::size(offset)-binary, @escape, @separator, rest::binary>> ->
-                separator(rest, row ++ [entry <> prefix], state, separator, escape)
-              <<prefix::size(offset)-binary, @escape, ?\r, ?\n>> ->
-                {state, row ++ [entry <> prefix]}
-              <<prefix::size(offset)-binary, @escape, ?\n>> ->
-                {state, row ++ [entry <> prefix]}
-              <<prefix::size(offset)-binary, @escape>> ->
-                {state, row ++ [entry <> prefix]}
-              _ ->
-                raise ParseError, "unexpected escape character #{@escape} in #{inspect line}"
-            end
-          :nomatch ->
-            {:escape, entry <> line, row, state}
+      defmacrop newlines_escape!(match) do
+        newlines_before =
+          quote do
+            <<prefix::size(offset)-binary, @escape, @escape, rest::binary>> ->
+              escape(rest, var!(entry) <> prefix <> <<@escape>>,
+                     var!(row), var!(state), var!(separator), var!(escape))
+            <<prefix::size(offset)-binary, @escape, @separator, rest::binary>> ->
+              separator(rest, var!(row) ++ [var!(entry) <> prefix],
+                        var!(state), var!(separator), var!(escape))
+          end
+
+        newlines_clauses =
+          for newline <- @newlines do
+            quote do
+              <<prefix::size(offset)-binary, @escape, unquote(newline)>> ->
+                {var!(state), var!(row) ++ [var!(entry) <> prefix]}
+            end |> hd()
+          end
+
+        newlines_after =
+          quote do
+            <<prefix::size(offset)-binary, @escape>> ->
+              {var!(state), var!(row) ++ [var!(entry) <> prefix]}
+            _ ->
+              raise ParseError, "unexpected escape character #{@escape} in #{inspect var!(line)}"
+          end
+
+        quote do
+          case unquote(match) do
+            {offset, _} ->
+              case var!(line), do: unquote(newlines_before ++ newlines_clauses ++ newlines_after)
+            :nomatch ->
+              {:escape, var!(entry) <> var!(line), var!(row), var!(state)}
+          end
         end
+      end
+
+      defp escape(line, entry, row, state, separator, escape) do
+        newlines_escape!(:binary.match(line, escape))
       end
 
       @compile {:inline, init_parser: 1, to_enum: 1, parse: 4}
@@ -281,17 +322,22 @@ defmodule NimbleCSV do
         _ -> @escape
       end)
 
+      @newline_minimum (case hd(@newlines) do
+        <<x>> -> x
+        _ -> hd(@newlines)
+      end)
+
       @replacement @escape <> @escape
 
       defp init_dumper() do
-        :binary.compile_pattern([@escape, "\r", "\n"])
+        :binary.compile_pattern([@escape | @newlines])
       end
 
       defp dump([], _check) do
-        [?\n]
+        [@newline_minimum]
       end
       defp dump([entry], check) do
-        [maybe_escape(entry, check), ?\n]
+        [maybe_escape(entry, check), @newline_minimum]
       end
       defp dump([entry | entries], check) do
         [maybe_escape(entry, check), @separator_minimum | dump(entries, check)]
