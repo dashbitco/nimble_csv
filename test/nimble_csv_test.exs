@@ -65,6 +65,12 @@ defmodule NimbleCSVTest do
     "john","doe","1986"
     mary,"jane",1985
     """) == [~w(john doe 1986), ~w(mary jane 1985)]
+
+    assert CSV.parse_string("""
+    name,year
+    "doe, john",1986
+    "jane, mary",1985
+    """) == [["doe, john", "1986"], ["jane, mary", "1985"]]
   end
 
   test "parse_string/2 with escape characters spawning multiple lines" do
