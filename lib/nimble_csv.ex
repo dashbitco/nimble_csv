@@ -4,7 +4,8 @@ defmodule NimbleCSV do
 
   It works by building highly-inlined CSV parsers, designed
   to work with strings, enumerables and streams. At the top
-  of your file, you can define your own parser module:
+  of your file (and not inside a function), you can define your
+  own parser module:
 
       NimbleCSV.define(MyParser, separator: "\t", escape: "\"")
 
@@ -94,6 +95,12 @@ defmodule NimbleCSV do
 
   @doc ~S"""
   Defines a new parser/dumper.
+
+  Calling this function defines a CSV module. Therefore, `define`
+  is typically invoked at the top of your files and not inside
+  functions. Placing it inside a function would cause the same
+  module to be defined multiple times, one time per invocation,
+  leading your code to emit warnings.
 
   It accepts the following options:
 
