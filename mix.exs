@@ -31,6 +31,7 @@ defmodule NimbleCSV.Mixfile do
 
   defp package do
     %{licenses: ["Apache 2"],
+      maintainers: ["José Valim"],
       links: %{"GitHub" => "https://github.com/plataformatec/nimble_csv"}}
   end
 end
