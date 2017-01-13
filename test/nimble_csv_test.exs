@@ -174,6 +174,11 @@ defmodule NimbleCSVTest do
     name,age
     "john ""nick"" doe",27
     """
+
+    assert IO.iodata_to_binary(CSV.dump_to_iodata([["name", "age"], ["doe, john", 27]])) == """
+    name,age
+    "doe, john",27
+    """
   end
 
   test "dump_to_stream/1" do

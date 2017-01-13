@@ -106,9 +106,11 @@ defmodule NimbleCSV do
 
     * `:moduledoc` - the documentation for the generated module
     * `:separator`- the CSV separator character, defaults to `","`
-    * `:newlines` - the list of supported newlines, defaults to `["\n", "\r\n"]`
     * `:escape`- the CSV escape character, defaults to `"\""`
-    * `:reserved` - the list of characters to be escaped when dumping, defaults to `["\"", "\r", "\n"]`
+    * `:newlines` - the list of supported newlines, defaults to `["\n", "\r\n"]`
+    * `:reserved` - the list of characters to be escaped when dumping,
+      it defaults to the :separator, :escape and :newlines characters
+      above.
 
   The first entry in the `:newlines` list is the one used for
   separating rows when dumping. If changing the newlines entries,
@@ -141,8 +143,8 @@ defmodule NimbleCSV do
       @moduledoc Keyword.get(options, :moduledoc)
       @separator Keyword.get(options, :separator, ",")
       @escape Keyword.get(options, :escape, "\"")
-      @reserved Keyword.get(options, :reserved, ["\"", "\n", "\r"])
       @newlines Keyword.get(options, :newlines, ["\n", "\r\n"])
+      @reserved Keyword.get(options, :reserved, [@separator, @escape | @newlines])
 
       ## Parser
 
