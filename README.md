@@ -44,7 +44,7 @@ See the [online documentation](https://hexdocs.pm/nimble_csv) for more informati
     end
     ```
 
-  2. Ensure `nimble_csv` is started before your application:
+  2. If using Elixir < 1.4, ensure `nimble_csv` is started before your application:
 
     ```elixir
     def application do
