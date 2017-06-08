@@ -122,7 +122,7 @@ defmodule NimbleCSV do
   It exports the following parser functions:
 
     * `parse_enumerable/2` - eager parsing from a list or another enumerable and returns a list of rows
-    * `parse_string/2` - eagar parsing from a string and returns a list of rows
+    * `parse_string/2` - eager parsing from a string and returns a list of rows
     * `parse_stream/2` - lazy parsing from a stream and returns a stream of rows
 
   The second argument for the functions above is a list of options
