@@ -339,17 +339,17 @@ defmodule NimbleCSV do
 
       @escape_minimum (case @escape do
         <<x>> -> x
-        _ -> @escape
+        x -> x
       end)
 
       @separator_minimum (case @separator do
         <<x>> -> x
-        _ -> @separator
+        x -> x
       end)
 
       @line_separator_minimum (case @line_separator do
         <<x>> -> x
-        _ -> @line_separator
+        x -> x
       end)
 
       @replacement @escape <> @escape
