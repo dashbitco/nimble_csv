@@ -31,6 +31,11 @@ defmodule NimbleCSVTest do
     """)) == [~w(john doe 1986), ~w(mary jane 1985)]
   end
 
+  test "parse_string/2 with CRLF terminations" do
+    assert CSV.parse_string("name,last,year\r\njohn,doe,1986\r\n") ==
+           [~w(john doe 1986)]
+  end
+
   test "parse_string/2 with empty string" do
     assert CSV.parse_string("", headers: false) == []
 

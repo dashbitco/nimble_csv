@@ -100,22 +100,31 @@ defmodule NimbleCSV do
   is typically invoked at the top of your files and not inside
   functions. Placing it inside a function would cause the same
   module to be defined multiple times, one time per invocation,
-  leading your code to emit warnings.
+  leading your code to emit warnings and slowing down execution.
 
   It accepts the following options:
 
     * `:moduledoc` - the documentation for the generated module
-    * `:separator`- the CSV separator character, defaults to `","`
-    * `:escape`- the CSV escape character, defaults to `"\""`
-    * `:newlines` - the list of supported newlines, defaults to `["\n", "\r\n"]`
-    * `:reserved` - the list of characters to be escaped when dumping,
-      it defaults to the :separator, :escape and :newlines characters
-      above.
 
-  The first entry in the `:newlines` list is the one used for
-  separating rows when dumping. If changing the newlines entries,
-  consider also changing the `:reserved` characters for proper
-  escaping when dumping.
+  The following options control parsing:
+
+    * `:escape`- the CSV escape character, defaults to `"\""`
+    * `:separator`- the CSV separator character, defaults to `","`
+    * `:newlines` - the list of entries to be considered newlines
+      when parsing, defaults to `["\r\n", "\n"]` (note the order matters)
+
+  The following options control dumping:
+
+    * `:escape`- the CSV escape character, defaults to `"\""`
+    * `:separator`- the CSV separator character, defaults to `","`
+    * `:line_separator` - the CSV line separator character, defaults to `"\n"`
+    * `:reserved` - the list of characters to be escaped, it defaults to the
+      `:separator`, `:line_separator` and `:escape` characters above.
+
+  Although parsing may support multiple newline delimiters, when
+  dumping only one of them must be picked, which is controlled by
+  the `:line_separator` option. This allows NimbleCSV to handle both
+  `"\r\n"` and `"\n"` when parsing, but only the latter for dumping.
 
   ## Parser/Dumper API
 
@@ -141,10 +150,11 @@ defmodule NimbleCSV do
   def define(module, options) do
     defmodule module do
       @moduledoc Keyword.get(options, :moduledoc)
-      @separator Keyword.get(options, :separator, ",")
       @escape Keyword.get(options, :escape, "\"")
-      @newlines Keyword.get(options, :newlines, ["\n", "\r\n"])
-      @reserved Keyword.get(options, :reserved, [@separator, @escape | @newlines])
+      @separator Keyword.get(options, :separator, ",")
+      @line_separator Keyword.get(options, :line_separator, "\n")
+      @newlines Keyword.get(options, :newlines, ["\r\n", "\n"])
+      @reserved Keyword.get(options, :reserved, [@escape, @separator, @line_separator])
 
       ## Parser
 
@@ -327,19 +337,19 @@ defmodule NimbleCSV do
         Stream.map(enumerable, &dump(&1, check))
       end
 
-      @separator_minimum (case @separator do
-        <<x>> -> x
-        _ -> @separator
-      end)
-
       @escape_minimum (case @escape do
         <<x>> -> x
         _ -> @escape
       end)
 
-      @newline_minimum (case hd(@newlines) do
+      @separator_minimum (case @separator do
         <<x>> -> x
-        _ -> hd(@newlines)
+        _ -> @separator
+      end)
+
+      @line_separator_minimum (case @line_separator do
+        <<x>> -> x
+        _ -> @line_separator
       end)
 
       @replacement @escape <> @escape
@@ -349,10 +359,10 @@ defmodule NimbleCSV do
       end
 
       defp dump([], _check) do
-        [@newline_minimum]
+        [@line_separator_minimum]
       end
       defp dump([entry], check) do
-        [maybe_escape(entry, check), @newline_minimum]
+        [maybe_escape(entry, check), @line_separator_minimum]
       end
       defp dump([entry | entries], check) do
         [maybe_escape(entry, check), @separator_minimum | dump(entries, check)]
