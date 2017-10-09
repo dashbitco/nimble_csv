@@ -40,7 +40,7 @@ See the [online documentation](https://hexdocs.pm/nimble_csv) for more informati
 
         ```elixir
         def deps do
-          [{:nimble_csv, "~> 0.2.0"}]
+          [{:nimble_csv, "~> 0.3"}]
         end
         ```
 
