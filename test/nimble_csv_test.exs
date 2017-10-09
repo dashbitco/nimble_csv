@@ -24,7 +24,7 @@ defmodule NimbleCSVTest do
   end
 
   test "parse_string/2 without trailing new line" do
-    assert CSV.parse_string(String.strip("""
+    assert CSV.parse_string(string_trim("""
     name,last,year
     john,doe,1986
     mary,jane,1985
@@ -202,5 +202,14 @@ defmodule NimbleCSVTest do
     name,age
     "john ""nick"" doe",27
     """
+  end
+
+  # TODO: Remove once we depend on Elixir 1.3 and on.
+  Code.ensure_loaded(String)
+
+  if function_exported?(String, :trim, 1) do
+    defp string_trim(str), do: String.trim(str)
+  else
+    defp string_trim(str), do: String.strip(str)
   end
 end
