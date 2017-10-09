@@ -161,7 +161,8 @@ defmodule NimbleCSV do
       @doc """
       Lazily parses CSV from a stream and returns a stream of rows.
       """
-      def parse_stream(stream, opts \\ []) do
+      @spec parse_stream(Enumerable.t(), keyword()) :: Enumerable.t()
+      def parse_stream(stream, opts \\ []) when is_list(opts) do
         {state, separator, escape} = init_parser(opts)
         Stream.transform(stream, fn -> state end, &parse(&1, &2, separator, escape), &finalize_parser/1)
       end
@@ -169,7 +170,8 @@ defmodule NimbleCSV do
       @doc """
       Eagerly parses CSV from an enumerable and returns a list of rows.
       """
-      def parse_enumerable(enumerable, opts \\ []) do
+      @spec parse_enumerable(Enumerable.t(), keyword()) :: [[binary()]]
+      def parse_enumerable(enumerable, opts \\ []) when is_list(opts) do
         {state, separator, escape} = init_parser(opts)
         {lines, state} = Enum.flat_map_reduce(enumerable, state, &parse(&1, &2, separator, escape))
         finalize_parser(state)
@@ -179,7 +181,8 @@ defmodule NimbleCSV do
       @doc """
       Eagerly parses CSV from a string and returns a list of rows.
       """
-      def parse_string(string, opts \\ []) do
+      @spec parse_string(binary(), keyword()) :: [[binary()]]
+      def parse_string(string, opts \\ []) when is_binary(string) and is_list(opts) do
         newline = :binary.compile_pattern(@newlines)
         {0, byte_size(string)}
         |> Stream.unfold(fn
@@ -322,6 +325,7 @@ defmodule NimbleCSV do
       @doc """
       Eagerly dump an enumerable into iodata (a list of binaries and bytes and other lists).
       """
+      @spec dump_to_iodata(Enumerable.t()) :: iodata()
       def dump_to_iodata(enumerable) do
         check = init_dumper()
         Enum.map(enumerable, &dump(&1, check))
@@ -332,6 +336,7 @@ defmodule NimbleCSV do
 
       It returns a stream that emits each row as iodata.
       """
+      @spec dump_to_stream(Enumerable.t()) :: Enumerable.t()
       def dump_to_stream(enumerable) do
         check = init_dumper()
         Stream.map(enumerable, &dump(&1, check))
