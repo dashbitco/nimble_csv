@@ -93,6 +93,63 @@ defmodule NimbleCSV do
     defexception [:message]
   end
 
+  @doc """
+  Eagerly dumps an enumerable into iodata (a list of binaries and bytes and other lists).
+  """
+  @callback dump_to_iodata(rows :: Enumerable.t()) :: iodata()
+
+  @doc """
+  Lazily dumps from an enumerable to a stream.
+
+  It returns a stream that emits each row as iodata.
+  """
+  @callback dump_to_stream(rows :: Enumerable.t()) :: Enumerable.t()
+
+  @doc """
+  Same as `parse_enumerable(enumerable, [])`.
+  """
+  @callback parse_enumerable(enum :: Enumerable.t()) :: [[binary()]]
+
+  @doc """
+  Eagerly parses CSV from an enumerable and returns a list of rows.
+
+  ## Options
+
+    * `:header` - when `false`, no longer discard the first row. Defaults to `true`.
+
+  """
+  @callback parse_enumerable(enum :: Enumerable.t(), opts :: keyword()) :: [[binary()]]
+
+  @doc """
+  Same as `parse_stream(enumerable, [])`.
+  """
+  @callback parse_stream(enum :: Enumerable.t()) :: Enumerable.t()
+
+  @doc """
+  Lazily parses CSV from a stream and returns a stream of rows.
+
+  ## Options
+
+    * `:header` - when `false`, no longer discard the first row. Defaults to `true`.
+
+  """
+  @callback parse_stream(enum :: Enumerable.t(), opts :: keyword()) :: Enumerable.t()
+
+  @doc """
+  Same as `parse_string(enumerable, [])`.
+  """
+  @callback parse_string(binary()) :: [[binary()]]
+
+  @doc """
+  Eagerly parses CSV from a string and returns a list of rows.
+
+  ## Options
+
+    * `:header` - when `false`, no longer discard the first row. Defaults to `true`.
+
+  """
+  @callback parse_string(binary(), opts :: keyword()) :: [[binary()]]
+
   @doc ~S"""
   Defines a new parser/dumper.
 
@@ -128,24 +185,9 @@ defmodule NimbleCSV do
 
   ## Parser/Dumper API
 
-  It exports the following parser functions:
-
-    * `parse_enumerable/2` - eager parsing from a list or another enumerable and returns a list of rows
-    * `parse_string/2` - eager parsing from a string and returns a list of rows
-    * `parse_stream/2` - lazy parsing from a stream and returns a stream of rows
-
-  The second argument for the functions above is a list of options
-  currently supporting:
-
-    * `:headers` - when false, no longer discard the first row
-
-  It also exports the following dump functions:
-
-    * `dump_to_iodata/1` - eagerly dump an enumerable into iodata
-      (a list of binaries and bytes and other lists).
-    * `dump_to_stream/1` - lazily dumps from an enumerable to a stream.
-      It returns a stream that emits each row as iodata.
-
+  Modules defined with `define/2` implement the `NimbleCSV` behaviour. See
+  the callbacks for this behaviour for information on the generated functions
+  and their documentation.
   """
   def define(module, options) do
     defmodule module do
@@ -156,21 +198,15 @@ defmodule NimbleCSV do
       @newlines Keyword.get(options, :newlines, ["\r\n", "\n"])
       @reserved Keyword.get(options, :reserved, [@escape, @separator, @line_separator])
 
+      @behaviour NimbleCSV
+
       ## Parser
 
-      @doc """
-      Lazily parses CSV from a stream and returns a stream of rows.
-      """
-      @spec parse_stream(Enumerable.t(), keyword()) :: Enumerable.t()
       def parse_stream(stream, opts \\ []) when is_list(opts) do
         {state, separator, escape} = init_parser(opts)
         Stream.transform(stream, fn -> state end, &parse(&1, &2, separator, escape), &finalize_parser/1)
       end
 
-      @doc """
-      Eagerly parses CSV from an enumerable and returns a list of rows.
-      """
-      @spec parse_enumerable(Enumerable.t(), keyword()) :: [[binary()]]
       def parse_enumerable(enumerable, opts \\ []) when is_list(opts) do
         {state, separator, escape} = init_parser(opts)
         {lines, state} = Enum.flat_map_reduce(enumerable, state, &parse(&1, &2, separator, escape))
@@ -178,10 +214,6 @@ defmodule NimbleCSV do
         lines
       end
 
-      @doc """
-      Eagerly parses CSV from a string and returns a list of rows.
-      """
-      @spec parse_string(binary(), keyword()) :: [[binary()]]
       def parse_string(string, opts \\ []) when is_binary(string) and is_list(opts) do
         newline = :binary.compile_pattern(@newlines)
         {0, byte_size(string)}
@@ -322,21 +354,11 @@ defmodule NimbleCSV do
 
       ## Dumper
 
-      @doc """
-      Eagerly dump an enumerable into iodata (a list of binaries and bytes and other lists).
-      """
-      @spec dump_to_iodata(Enumerable.t()) :: iodata()
       def dump_to_iodata(enumerable) do
         check = init_dumper()
         Enum.map(enumerable, &dump(&1, check))
       end
 
-      @doc """
-      Lazily dumps from an enumerable to a stream.
-
-      It returns a stream that emits each row as iodata.
-      """
-      @spec dump_to_stream(Enumerable.t()) :: Enumerable.t()
       def dump_to_stream(enumerable) do
         check = init_dumper()
         Stream.map(enumerable, &dump(&1, check))
