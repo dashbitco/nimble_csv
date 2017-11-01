@@ -1,7 +1,7 @@
 defmodule NimbleCSV.Mixfile do
   use Mix.Project
 
-  @version "0.3.0"
+  @version "0.4.0"
 
   def project do
     [app: :nimble_csv,
@@ -21,7 +21,7 @@ defmodule NimbleCSV.Mixfile do
   end
 
   defp deps do
-    [{:ex_doc, "~> 0.13", only: :docs}]
+    [{:ex_doc, "~> 0.18", only: :docs}]
   end
 
   defp docs do
