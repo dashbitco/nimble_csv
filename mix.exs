@@ -6,7 +6,7 @@ defmodule NimbleCSV.Mixfile do
   def project do
     [app: :nimble_csv,
      version: @version,
-     elixir: "~> 1.2",
+     elixir: "~> 1.3",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      name: "NimbleCSV",
