@@ -115,7 +115,7 @@ defmodule NimbleCSV do
 
   ## Options
 
-    * `:header` - when `false`, no longer discard the first row. Defaults to `true`.
+    * `:headers` - when `false`, no longer discard the first row. Defaults to `true`.
 
   """
   @callback parse_enumerable(enum :: Enumerable.t(), opts :: keyword()) :: [[binary()]]
@@ -130,7 +130,7 @@ defmodule NimbleCSV do
 
   ## Options
 
-    * `:header` - when `false`, no longer discard the first row. Defaults to `true`.
+    * `:headers` - when `false`, no longer discard the first row. Defaults to `true`.
 
   """
   @callback parse_stream(enum :: Enumerable.t(), opts :: keyword()) :: Enumerable.t()
