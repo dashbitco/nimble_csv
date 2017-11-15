@@ -145,7 +145,7 @@ defmodule NimbleCSV do
 
   ## Options
 
-    * `:header` - when `false`, no longer discard the first row. Defaults to `true`.
+    * `:headers` - when `false`, no longer discard the first row. Defaults to `true`.
 
   """
   @callback parse_string(binary(), opts :: keyword()) :: [[binary()]]
