@@ -7,8 +7,6 @@ defmodule NimbleCSV.Mixfile do
     [app: :nimble_csv,
      version: @version,
      elixir: "~> 1.3",
-     build_embedded: Mix.env == :prod,
-     start_permanent: Mix.env == :prod,
      name: "NimbleCSV",
      description: "A simple and fast CSV parsing and dumping library",
      deps: deps(),

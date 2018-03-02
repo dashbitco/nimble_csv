@@ -52,6 +52,12 @@ See the [online documentation](https://hexdocs.pm/nimble_csv) for more informati
         end
         ```
 
+## Nimble*
+
+Other nimble libraries by Plataformatec:
+
+  * [NimbleParsec](https://github.com/plataformatec/nimble_parsec) - simple and fast parser combinators
+
 ## License
 
 Copyright 2016 Plataformatec
