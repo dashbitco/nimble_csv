@@ -277,6 +277,13 @@ defmodule NimbleCSVTest do
     """
   end
 
+  test "parse_string/2 with escape characters (unknown separator)" do
+    assert CSV.parse_string("""
+    name,year
+    "doe, john",1986
+    "jane; mary",1985
+    """) == [["doe, john", "1986"], ["jane; mary", "1985"]]
+  end
 
   # TODO: Remove once we depend on Elixir 1.3 and on.
   Code.ensure_loaded(String)
