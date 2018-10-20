@@ -165,10 +165,13 @@ defmodule NimbleCSV do
 
   The following options control parsing:
 
-    * `:escape`- the CSV escape character, defaults to `"\""`
-    * `:separator`- the CSV separator character, defaults to `","`
+    * `:escape`- the CSV escape, defaults to `"\""`
+    * `:separator`- the CSV separators, defaults to `","`. It can be
+      a string or a list of strings. If a list is given, the first entry
+      is used for dumping (see below)
     * `:newlines` - the list of entries to be considered newlines
-      when parsing, defaults to `["\r\n", "\n"]` (note the order matters)
+      when parsing, defaults to `["\r\n", "\n"]` (note they are attempted
+      in order, so the order matters)
 
   The following options control dumping:
 
@@ -194,8 +197,8 @@ defmodule NimbleCSV do
       @moduledoc Keyword.get(options, :moduledoc)
       @escape Keyword.get(options, :escape, "\"")
       @separator (case Keyword.get(options, :separator, ",") do
-                  many when is_list(many) -> many
-                  one when is_binary(one) -> [one]
+                    many when is_list(many) -> many
+                    one when is_binary(one) -> [one]
                   end)
       @line_separator Keyword.get(options, :line_separator, "\n")
       @newlines Keyword.get(options, :newlines, ["\r\n", "\n"])
