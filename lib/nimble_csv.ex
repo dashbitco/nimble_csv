@@ -165,10 +165,13 @@ defmodule NimbleCSV do
 
   The following options control parsing:
 
-    * `:escape`- the CSV escape character, defaults to `"\""`
-    * `:separator`- the CSV separator character, defaults to `","`
+    * `:escape`- the CSV escape, defaults to `"\""`
+    * `:separator`- the CSV separators, defaults to `","`. It can be
+      a string or a list of strings. If a list is given, the first entry
+      is used for dumping (see below)
     * `:newlines` - the list of entries to be considered newlines
-      when parsing, defaults to `["\r\n", "\n"]` (note the order matters)
+      when parsing, defaults to `["\r\n", "\n"]` (note they are attempted
+      in order, so the order matters)
 
   The following options control dumping:
 
@@ -193,10 +196,13 @@ defmodule NimbleCSV do
     defmodule module do
       @moduledoc Keyword.get(options, :moduledoc)
       @escape Keyword.get(options, :escape, "\"")
-      @separator Keyword.get(options, :separator, ",")
+      @separator (case Keyword.get(options, :separator, ",") do
+                    many when is_list(many) -> many
+                    one when is_binary(one) -> [one]
+                  end)
       @line_separator Keyword.get(options, :line_separator, "\n")
       @newlines Keyword.get(options, :newlines, ["\r\n", "\n"])
-      @reserved Keyword.get(options, :reserved, [@escape, @separator, @line_separator])
+      @reserved Keyword.get(options, :reserved, [@escape, @line_separator | @separator])
 
       @behaviour NimbleCSV
 
@@ -288,6 +294,24 @@ defmodule NimbleCSV do
         end
       end
 
+      defmacrop separator_case() do
+        quote do
+          case var!(line) do
+            unquote(
+              Enum.flat_map(@separator, fn sep ->
+                quote do
+                  <<prefix::size(var!(pos))-binary, unquote(sep), @escape, rest::binary>> ->
+                    escape(rest, "", var!(row) ++ :binary.split(prefix, var!(separator), [:global]), var!(state), var!(separator), var!(escape))
+                end
+              end) ++ quote(do: (
+                _ ->
+                  raise(ParseError, "unexpected escape character #{@escape} in #{inspect var!(line)}")
+              ))
+            )
+          end
+        end
+      end
+
       defp separator(line, row, state, separator, escape) do
         case :binary.match(line, escape) do
           {0, _} ->
@@ -296,12 +320,7 @@ defmodule NimbleCSV do
 
           {pos, _} ->
             pos = pos - 1
-            case line do
-              <<prefix::size(pos)-binary, @separator, @escape, rest::binary>> ->
-                escape(rest, "", row ++ :binary.split(prefix, separator, [:global]), state, separator, escape)
-              _ ->
-                raise ParseError, "unexpected escape character #{@escape} in #{inspect line}"
-            end
+            separator_case()
 
           :nomatch ->
             pruned = newlines_separator!()
@@ -314,11 +333,15 @@ defmodule NimbleCSV do
           quote do
             <<prefix::size(offset)-binary, @escape, @escape, rest::binary>> ->
               escape(rest, var!(entry) <> prefix <> <<@escape>>,
-                     var!(row), var!(state), var!(separator), var!(escape))
-            <<prefix::size(offset)-binary, @escape, @separator, rest::binary>> ->
-              separator(rest, var!(row) ++ [var!(entry) <> prefix],
-                        var!(state), var!(separator), var!(escape))
-          end
+                    var!(row), var!(state), var!(separator), var!(escape))
+          end ++
+          Enum.flat_map(@separator, fn sep ->
+            quote do
+              <<prefix::size(offset)-binary, @escape, unquote(sep), rest::binary>> ->
+                separator(rest, var!(row) ++ [var!(entry) <> prefix],
+                          var!(state), var!(separator), var!(escape))
+            end
+          end)
 
         newlines_clauses =
           for newline <- @newlines do
@@ -370,8 +393,8 @@ defmodule NimbleCSV do
       end)
 
       @separator_minimum (case @separator do
-        <<x>> -> x
-        x -> x
+        [<<x>> | _] -> x
+        [x | _] -> x
       end)
 
       @line_separator_minimum (case @line_separator do
