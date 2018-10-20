@@ -204,85 +204,87 @@ defmodule NimbleCSVTest do
     """
   end
 
-  NimbleCSV.define(CSVWithUnknownSeparator, separator: [",", ";", "\t"])
+  describe "multiple separators" do
+    NimbleCSV.define(CSVWithUnknownSeparator, separator: [",", ";", "\t"])
 
-  test "parse_string/2 (unknown separator)" do
-    assert CSVWithUnknownSeparator.parse_string("""
-    name,last\tyear
-    john;doe,1986
-    """) == [~w(john doe 1986)]
-  end
-
-  test "parse_stream/2 (unknown separator)" do
-    stream = [
-      "name,last\tyear\n",
-      "john;doe,1986\n"
-    ] |> Stream.map(&String.upcase/1)
-    assert CSVWithUnknownSeparator.parse_stream(stream) |> Enum.to_list == [~w(JOHN DOE 1986)]
-
-    stream = [
-      "name,last\tyear\n",
-      "john;doe,1986\n"
-    ] |> Stream.map(&String.upcase/1)
-    assert CSVWithUnknownSeparator.parse_stream(stream, headers: false) |> Enum.to_list ==
-           [~w(NAME LAST YEAR), ~w(JOHN DOE 1986)]
-
-    stream = CSVWithUnknownSeparator.parse_stream([
-      "name,last\tyear\n",
-      "john;doe,\"1986\n"
-    ] |> Stream.map(&String.upcase/1))
-    assert_raise NimbleCSV.ParseError, ~s(expected escape character " but reached the end of file), fn ->
-      Enum.to_list(stream)
+    test "parse_string/2 (unknown separator)" do
+      assert CSVWithUnknownSeparator.parse_string("""
+      name,last\tyear
+      john;doe,1986
+      """) == [~w(john doe 1986)]
     end
-  end
 
-  test "dump_to_iodata/1 (unknown separator)" do
-    assert IO.iodata_to_binary(CSVWithUnknownSeparator.dump_to_iodata([["name", "age"], ["john", 27]])) == """
-    name,age
-    john,27
-    """
+    test "parse_stream/2 (unknown separator)" do
+      stream = [
+        "name,last\tyear\n",
+        "john;doe,1986\n"
+      ] |> Stream.map(&String.upcase/1)
+      assert CSVWithUnknownSeparator.parse_stream(stream) |> Enum.to_list == [~w(JOHN DOE 1986)]
 
-    assert IO.iodata_to_binary(CSVWithUnknownSeparator.dump_to_iodata([["name", "age"], ["john\ndoe", 27]])) == """
-    name,age
-    "john
-    doe",27
-    """
+      stream = [
+        "name,last\tyear\n",
+        "john;doe,1986\n"
+      ] |> Stream.map(&String.upcase/1)
+      assert CSVWithUnknownSeparator.parse_stream(stream, headers: false) |> Enum.to_list ==
+            [~w(NAME LAST YEAR), ~w(JOHN DOE 1986)]
 
-    assert IO.iodata_to_binary(CSVWithUnknownSeparator.dump_to_iodata([["name", "age"], ["john \"nick\" doe", 27]])) == """
-    name,age
-    "john ""nick"" doe",27
-    """
+      stream = CSVWithUnknownSeparator.parse_stream([
+        "name,last\tyear\n",
+        "john;doe,\"1986\n"
+      ] |> Stream.map(&String.upcase/1))
+      assert_raise NimbleCSV.ParseError, ~s(expected escape character " but reached the end of file), fn ->
+        Enum.to_list(stream)
+      end
+    end
 
-    assert IO.iodata_to_binary(CSVWithUnknownSeparator.dump_to_iodata([["name", "age"], ["doe, john", 27]])) == """
-    name,age
-    "doe, john",27
-    """
-  end
+    test "dump_to_iodata/1 (unknown separator)" do
+      assert IO.iodata_to_binary(CSVWithUnknownSeparator.dump_to_iodata([["name", "age"], ["john", 27]])) == """
+      name,age
+      john,27
+      """
 
-  test "dump_to_stream/1 (unknown separator)" do
-    assert IO.iodata_to_binary(Enum.to_list(CSVWithUnknownSeparator.dump_to_stream([["name", "age"], ["john", 27]]))) == """
-    name,age
-    john,27
-    """
+      assert IO.iodata_to_binary(CSVWithUnknownSeparator.dump_to_iodata([["name", "age"], ["john\ndoe", 27]])) == """
+      name,age
+      "john
+      doe",27
+      """
 
-    assert IO.iodata_to_binary(Enum.to_list(CSVWithUnknownSeparator.dump_to_stream([["name", "age"], ["john\ndoe", 27]]))) == """
-    name,age
-    "john
-    doe",27
-    """
+      assert IO.iodata_to_binary(CSVWithUnknownSeparator.dump_to_iodata([["name", "age"], ["john \"nick\" doe", 27]])) == """
+      name,age
+      "john ""nick"" doe",27
+      """
 
-    assert IO.iodata_to_binary(Enum.to_list(CSVWithUnknownSeparator.dump_to_stream([["name", "age"], ["john \"nick\" doe", 27]]))) == """
-    name,age
-    "john ""nick"" doe",27
-    """
-  end
+      assert IO.iodata_to_binary(CSVWithUnknownSeparator.dump_to_iodata([["name", "age"], ["doe, john", 27]])) == """
+      name,age
+      "doe, john",27
+      """
+    end
 
-  test "parse_string/2 with escape characters (unknown separator)" do
-    assert CSV.parse_string("""
-    name,year
-    "doe, john",1986
-    "jane; mary",1985
-    """) == [["doe, john", "1986"], ["jane; mary", "1985"]]
+    test "dump_to_stream/1 (unknown separator)" do
+      assert IO.iodata_to_binary(Enum.to_list(CSVWithUnknownSeparator.dump_to_stream([["name", "age"], ["john", 27]]))) == """
+      name,age
+      john,27
+      """
+
+      assert IO.iodata_to_binary(Enum.to_list(CSVWithUnknownSeparator.dump_to_stream([["name", "age"], ["john\ndoe", 27]]))) == """
+      name,age
+      "john
+      doe",27
+      """
+
+      assert IO.iodata_to_binary(Enum.to_list(CSVWithUnknownSeparator.dump_to_stream([["name", "age"], ["john \"nick\" doe", 27]]))) == """
+      name,age
+      "john ""nick"" doe",27
+      """
+    end
+
+    test "parse_string/2 with escape characters (unknown separator)" do
+      assert CSV.parse_string("""
+      name,year
+      "doe, john",1986
+      "jane; mary",1985
+      """) == [["doe, john", "1986"], ["jane; mary", "1985"]]
+    end
   end
 
   # TODO: Remove once we depend on Elixir 1.3 and on.
