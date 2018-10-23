@@ -308,31 +308,31 @@ defmodule NimbleCSV do
       end
 
       defmacrop separator_case() do
+        clauses =
+          Enum.flat_map(@separator, fn sep ->
+            quote do
+              <<prefix::size(var!(pos))-binary, unquote(sep), @escape, rest::binary>> ->
+                escape(
+                  rest,
+                  "",
+                  var!(row) ++ :binary.split(prefix, var!(separator), [:global]),
+                  var!(state),
+                  var!(separator),
+                  var!(escape)
+                )
+            end
+          end)
+
+        catch_all =
+          quote do
+            _ ->
+              raise ParseError,
+                    "unexpected escape character #{@escape} in #{inspect(var!(line))}"
+          end
+
         quote do
           case var!(line) do
-            unquote(
-              Enum.flat_map(@separator, fn sep ->
-                quote do
-                  <<prefix::size(var!(pos))-binary, unquote(sep), @escape, rest::binary>> ->
-                    escape(
-                      rest,
-                      "",
-                      var!(row) ++ :binary.split(prefix, var!(separator), [:global]),
-                      var!(state),
-                      var!(separator),
-                      var!(escape)
-                    )
-                end
-              end) ++
-                quote(
-                  do:
-                    (_ ->
-                       raise(
-                         ParseError,
-                         "unexpected escape character #{@escape} in #{inspect(var!(line))}"
-                       ))
-                )
-            )
+            unquote(clauses ++ catch_all)
           end
         end
       end
@@ -463,11 +463,8 @@ defmodule NimbleCSV do
 
         case :binary.match(entry, check) do
           {_, _} ->
-            [
-              @escape_minimum,
-              :binary.replace(entry, @escape, @replacement, [:global]),
-              @escape_minimum
-            ]
+            replaced = :binary.replace(entry, @escape, @replacement, [:global])
+            [@escape_minimum, replaced, @escape_minimum]
 
           :nomatch ->
             entry
