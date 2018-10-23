@@ -210,28 +210,41 @@ defmodule NimbleCSV do
 
       def parse_stream(stream, opts \\ []) when is_list(opts) do
         {state, separator, escape} = init_parser(opts)
-        Stream.transform(stream, fn -> state end, &parse(&1, &2, separator, escape), &finalize_parser/1)
+
+        Stream.transform(
+          stream,
+          fn -> state end,
+          &parse(&1, &2, separator, escape),
+          &finalize_parser/1
+        )
       end
 
       def parse_enumerable(enumerable, opts \\ []) when is_list(opts) do
         {state, separator, escape} = init_parser(opts)
-        {lines, state} = Enum.flat_map_reduce(enumerable, state, &parse(&1, &2, separator, escape))
+
+        {lines, state} =
+          Enum.flat_map_reduce(enumerable, state, &parse(&1, &2, separator, escape))
+
         finalize_parser(state)
         lines
       end
 
       def parse_string(string, opts \\ []) when is_binary(string) and is_list(opts) do
         newline = :binary.compile_pattern(@newlines)
+
         {0, byte_size(string)}
         |> Stream.unfold(fn
           {_, 0} ->
             nil
+
           {offset, length} ->
             case :binary.match(string, newline, scope: {offset, length}) do
               {newline_offset, newline_length} ->
                 difference = newline_length + newline_offset - offset
+
                 {:binary.part(string, offset, difference),
                  {newline_offset + newline_length, length - difference}}
+
               :nomatch ->
                 {:binary.part(string, offset, length), {offset + length, 0}}
             end
@@ -247,6 +260,7 @@ defmodule NimbleCSV do
       defp finalize_parser({:escape, _, _, _}) do
         raise ParseError, "expected escape character #{@escape} but reached the end of file"
       end
+
       defp finalize_parser(_) do
         :ok
       end
@@ -260,11 +274,11 @@ defmodule NimbleCSV do
       end
 
       defp parse(line, {:escape, entry, row, state}, separator, escape) do
-        to_enum escape(line, entry, row, state, separator, escape)
+        to_enum(escape(line, entry, row, state, separator, escape))
       end
 
       defp parse(line, state, separator, escape) do
-        to_enum separator(line, [], state, separator, escape)
+        to_enum(separator(line, [], state, separator, escape))
       end
 
       defmacrop newlines_separator!() do
@@ -276,16 +290,15 @@ defmodule NimbleCSV do
           end
 
         newlines_clauses =
-          for {newline, i} <- Enum.with_index(@newlines) do
+          @newlines
+          |> Enum.with_index()
+          |> Enum.flat_map(fn {newline, i} ->
             quote do
-              <<prefix::size(unquote(Macro.var(:"count#{i}", Elixir)))-binary, unquote(newline)>> -> prefix
-            end |> hd()
-          end
-
-        newlines_clauses =
-          newlines_clauses ++ (quote do
-            prefix -> prefix
+              <<prefix::size(unquote(Macro.var(:"count#{i}", Elixir)))-binary, unquote(newline)>> ->
+                prefix
+            end
           end)
+          |> Kernel.++(quote do: (prefix -> prefix))
 
         quote do
           offset = byte_size(var!(line))
@@ -301,12 +314,24 @@ defmodule NimbleCSV do
               Enum.flat_map(@separator, fn sep ->
                 quote do
                   <<prefix::size(var!(pos))-binary, unquote(sep), @escape, rest::binary>> ->
-                    escape(rest, "", var!(row) ++ :binary.split(prefix, var!(separator), [:global]), var!(state), var!(separator), var!(escape))
+                    escape(
+                      rest,
+                      "",
+                      var!(row) ++ :binary.split(prefix, var!(separator), [:global]),
+                      var!(state),
+                      var!(separator),
+                      var!(escape)
+                    )
                 end
-              end) ++ quote(do: (
-                _ ->
-                  raise(ParseError, "unexpected escape character #{@escape} in #{inspect var!(line)}")
-              ))
+              end) ++
+                quote(
+                  do:
+                    (_ ->
+                       raise(
+                         ParseError,
+                         "unexpected escape character #{@escape} in #{inspect(var!(line))}"
+                       ))
+                )
             )
           end
         end
@@ -332,37 +357,50 @@ defmodule NimbleCSV do
         newlines_before =
           quote do
             <<prefix::size(offset)-binary, @escape, @escape, rest::binary>> ->
-              escape(rest, var!(entry) <> prefix <> <<@escape>>,
-                    var!(row), var!(state), var!(separator), var!(escape))
+              escape(
+                rest,
+                var!(entry) <> prefix <> <<@escape>>,
+                var!(row),
+                var!(state),
+                var!(separator),
+                var!(escape)
+              )
           end ++
-          Enum.flat_map(@separator, fn sep ->
-            quote do
-              <<prefix::size(offset)-binary, @escape, unquote(sep), rest::binary>> ->
-                separator(rest, var!(row) ++ [var!(entry) <> prefix],
-                          var!(state), var!(separator), var!(escape))
-            end
-          end)
+            Enum.flat_map(@separator, fn sep ->
+              quote do
+                <<prefix::size(offset)-binary, @escape, unquote(sep), rest::binary>> ->
+                  separator(
+                    rest,
+                    var!(row) ++ [var!(entry) <> prefix],
+                    var!(state),
+                    var!(separator),
+                    var!(escape)
+                  )
+              end
+            end)
 
         newlines_clauses =
-          for newline <- @newlines do
+          Enum.flat_map(@newlines, fn newline ->
             quote do
               <<prefix::size(offset)-binary, @escape, unquote(newline)>> ->
                 {var!(state), var!(row) ++ [var!(entry) <> prefix]}
-            end |> hd()
-          end
+            end
+          end)
 
         newlines_after =
           quote do
             <<prefix::size(offset)-binary, @escape>> ->
               {var!(state), var!(row) ++ [var!(entry) <> prefix]}
+
             _ ->
-              raise ParseError, "unexpected escape character #{@escape} in #{inspect var!(line)}"
+              raise ParseError, "unexpected escape character #{@escape} in #{inspect(var!(line))}"
           end
 
         quote do
           case unquote(match) do
             {offset, _} ->
               case var!(line), do: unquote(newlines_before ++ newlines_clauses ++ newlines_after)
+
             :nomatch ->
               {:escape, var!(entry) <> var!(line), var!(row), var!(state)}
           end
@@ -388,19 +426,19 @@ defmodule NimbleCSV do
       end
 
       @escape_minimum (case @escape do
-        <<x>> -> x
-        x -> x
-      end)
+                         <<x>> -> x
+                         x -> x
+                       end)
 
       @separator_minimum (case @separator do
-        [<<x>> | _] -> x
-        [x | _] -> x
-      end)
+                            [<<x>> | _] -> x
+                            [x | _] -> x
+                          end)
 
       @line_separator_minimum (case @line_separator do
-        <<x>> -> x
-        x -> x
-      end)
+                                 <<x>> -> x
+                                 x -> x
+                               end)
 
       @replacement @escape <> @escape
 
@@ -411,18 +449,26 @@ defmodule NimbleCSV do
       defp dump([], _check) do
         [@line_separator_minimum]
       end
+
       defp dump([entry], check) do
         [maybe_escape(entry, check), @line_separator_minimum]
       end
+
       defp dump([entry | entries], check) do
         [maybe_escape(entry, check), @separator_minimum | dump(entries, check)]
       end
 
       defp maybe_escape(entry, check) do
         entry = to_string(entry)
+
         case :binary.match(entry, check) do
           {_, _} ->
-            [@escape_minimum, :binary.replace(entry, @escape, @replacement, [:global]), @escape_minimum]
+            [
+              @escape_minimum,
+              :binary.replace(entry, @escape, @replacement, [:global]),
+              @escape_minimum
+            ]
+
           :nomatch ->
             entry
         end
@@ -433,6 +479,10 @@ defmodule NimbleCSV do
   end
 end
 
-NimbleCSV.define(NimbleCSV.RFC4180, separator: ",", escape: "\"", moduledoc: """
-A CSV parser that uses comma as separator and double-quotes as escape according to RFC4180.
-""")
+NimbleCSV.define(NimbleCSV.RFC4180,
+  separator: ",",
+  escape: "\"",
+  moduledoc: """
+  A CSV parser that uses comma as separator and double-quotes as escape according to RFC4180.
+  """
+)
