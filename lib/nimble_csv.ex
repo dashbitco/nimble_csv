@@ -115,7 +115,8 @@ defmodule NimbleCSV do
 
   ## Options
 
-    * `:headers` - when `false`, no longer discard the first row. Defaults to `true`.
+    * `:skip_headers` - when `true`, skips headers. Defaults to `true`.
+      Set it to false to keep headers or when the CSV has no headers.
 
   """
   @callback parse_enumerable(enum :: Enumerable.t(), opts :: keyword()) :: [[binary()]]
@@ -130,7 +131,8 @@ defmodule NimbleCSV do
 
   ## Options
 
-    * `:headers` - when `false`, no longer discard the first row. Defaults to `true`.
+    * `:skip_headers` - when `true`, skips headers. Defaults to `true`.
+      Set it to false to keep headers or when the CSV has no headers.
 
   """
   @callback parse_stream(enum :: Enumerable.t(), opts :: keyword()) :: Enumerable.t()
@@ -145,7 +147,8 @@ defmodule NimbleCSV do
 
   ## Options
 
-    * `:headers` - when `false`, no longer discard the first row. Defaults to `true`.
+    * `:skip_headers` - when `true`, skips headers. Defaults to `true`.
+      Set it to false to keep headers or when the CSV has no headers.
 
   """
   @callback parse_string(binary(), opts :: keyword()) :: [[binary()]]
@@ -253,7 +256,13 @@ defmodule NimbleCSV do
       end
 
       defp init_parser(opts) do
-        state = if Keyword.get(opts, :headers, true), do: :header, else: :line
+        state = if Keyword.has_key?(opts, :headers) do
+          IO.warn "the :headers option is deprecated, please use :skip_headers instead"
+          if Keyword.get(opts, :headers, true), do: :header, else: :line
+        else
+          if Keyword.get(opts, :skip_headers, true), do: :header, else: :line
+        end
+
         {state, :binary.compile_pattern(@separator), :binary.compile_pattern(@escape)}
       end
 

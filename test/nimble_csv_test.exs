@@ -16,7 +16,7 @@ defmodule NimbleCSVTest do
              name,last,year
              john,doe,1986
              """,
-             headers: false
+             skip_headers: false
            ) == [~w(name last year), ~w(john doe 1986)]
 
     assert CSV.parse_string(
@@ -25,7 +25,7 @@ defmodule NimbleCSVTest do
              john,doe,1986
              mary,jane,1985
              """,
-             headers: false
+             skip_headers: false
            ) == [~w(name last year), ~w(john doe 1986), ~w(mary jane 1985)]
   end
 
@@ -44,7 +44,7 @@ defmodule NimbleCSVTest do
   end
 
   test "parse_string/2 with empty string" do
-    assert CSV.parse_string("", headers: false) == []
+    assert CSV.parse_string("", skip_headers: false) == []
 
     assert CSV.parse_string(
              """
@@ -53,7 +53,7 @@ defmodule NimbleCSVTest do
              john
 
              """,
-             headers: false
+             skip_headers: false
            ) == [["name"], [""], ["john"], [""]]
   end
 
@@ -152,7 +152,7 @@ defmodule NimbleCSVTest do
                "name,last,year\n",
                "john,doe,1986\n"
              ],
-             headers: false
+             skip_headers: false
            ) == [~w(name last year), ~w(john doe 1986)]
 
     assert_raise NimbleCSV.ParseError,
@@ -182,7 +182,7 @@ defmodule NimbleCSVTest do
       ]
       |> Stream.map(&String.upcase/1)
 
-    assert CSV.parse_stream(stream, headers: false) |> Enum.to_list() ==
+    assert CSV.parse_stream(stream, skip_headers: false) |> Enum.to_list() ==
              [~w(NAME LAST YEAR), ~w(JOHN DOE 1986)]
 
     stream =
@@ -275,7 +275,7 @@ defmodule NimbleCSVTest do
         ]
         |> Stream.map(&String.upcase/1)
 
-      assert CSVWithUnknownSeparator.parse_stream(stream, headers: false) |> Enum.to_list() ==
+      assert CSVWithUnknownSeparator.parse_stream(stream, skip_headers: false) |> Enum.to_list() ==
                [~w(NAME LAST YEAR), ~w(JOHN DOE 1986)]
 
       stream =
