@@ -245,11 +245,11 @@ defmodule NimbleCSV do
               {newline_offset, newline_length} ->
                 difference = newline_length + newline_offset - offset
 
-                {:binary.part(string, offset, difference),
+                {binary_part(string, offset, difference),
                  {newline_offset + newline_length, length - difference}}
 
               :nomatch ->
-                {:binary.part(string, offset, length), {offset + length, 0}}
+                {binary_part(string, offset, length), {offset + length, 0}}
             end
         end)
         |> parse_enumerable(opts)
