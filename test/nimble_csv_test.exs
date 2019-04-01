@@ -113,32 +113,51 @@ defmodule NimbleCSVTest do
   end
 
   test "parse_string/2 with invalid escape" do
-    assert_raise NimbleCSV.ParseError,
-                 ~s(unexpected escape character " in "john,d\\\"e,1986\\n"),
-                 fn ->
-                   CSV.parse_string("""
-                   name,last,year
-                   john,d"e,1986
-                   """)
-                 end
+    assert %NimbleCSV.ParseError{
+             message: ~s(unexpected escape character " in "john,d\\\"e,1986\\n"),
+             line_number: 2
+           } ==
+             catch_error(
+               CSV.parse_string("""
+               name,last,year
+               john,d"e,1986
+               """)
+             )
 
-    assert_raise NimbleCSV.ParseError,
-                 ~s(unexpected escape character " in "d\\\"e,1986\\n"),
-                 fn ->
-                   CSV.parse_string("""
-                   name,last,year
-                   john,"d"e,1986
-                   """)
-                 end
+    assert %NimbleCSV.ParseError{
+             message: ~s(unexpected escape character " in "d\\\"e,1986\\n"),
+             line_number: 4
+           } ==
+             catch_error(
+               CSV.parse_string("""
+               name,last,year
+               1,2,3
+               4,5,6
+               john,"d"e,1986
+               """)
+             )
 
-    assert_raise NimbleCSV.ParseError,
-                 ~s(expected escape character " but reached the end of file),
-                 fn ->
-                   CSV.parse_string("""
-                   name,last,year
-                   john,doe,"1986
-                   """)
-                 end
+    assert %NimbleCSV.ParseError{
+             message: ~s(unexpected escape character " in "la\\\"st,year\\n"),
+             line_number: 1
+           } ==
+             catch_error(
+               CSV.parse_string("""
+               name,"la"st,year
+               john,"d"e,1986
+               """)
+             )
+
+    assert %NimbleCSV.ParseError{
+             message: ~s(expected escape character " but reached the end of file),
+             line_number: 2
+           } ==
+             catch_error(
+               CSV.parse_string("""
+               name,last,year
+               john,doe,"1986
+               """)
+             )
   end
 
   test "parse_enumerable/2" do
@@ -155,14 +174,16 @@ defmodule NimbleCSVTest do
              skip_headers: false
            ) == [~w(name last year), ~w(john doe 1986)]
 
-    assert_raise NimbleCSV.ParseError,
-                 ~s(expected escape character " but reached the end of file),
-                 fn ->
-                   CSV.parse_enumerable([
-                     "name,last,year\n",
-                     "john,doe,\"1986\n"
-                   ])
-                 end
+    assert %NimbleCSV.ParseError{
+             message: ~s'expected escape character " but reached the end of file',
+             line_number: 2
+           } ==
+             catch_error(
+               CSV.parse_enumerable([
+                 "name,last,year\n",
+                 "john,doe,\"1986\n"
+               ])
+             )
   end
 
   test "parse_stream/2" do
@@ -189,16 +210,16 @@ defmodule NimbleCSVTest do
       CSV.parse_stream(
         [
           "name,last,year\n",
+          "alex,jones,1980\n",
           "john,doe,\"1986\n"
         ]
         |> Stream.map(&String.upcase/1)
       )
 
-    assert_raise NimbleCSV.ParseError,
-                 ~s(expected escape character " but reached the end of file),
-                 fn ->
-                   Enum.to_list(stream)
-                 end
+    assert %NimbleCSV.ParseError{
+             message: ~s'expected escape character " but reached the end of file',
+             line_number: 3
+           } == catch_error(Enum.to_list(stream))
   end
 
   test "dump_to_iodata/1" do
@@ -287,11 +308,10 @@ defmodule NimbleCSVTest do
           |> Stream.map(&String.upcase/1)
         )
 
-      assert_raise NimbleCSV.ParseError,
-                   ~s(expected escape character " but reached the end of file),
-                   fn ->
-                     Enum.to_list(stream)
-                   end
+      assert %NimbleCSV.ParseError{
+               message: ~s'expected escape character " but reached the end of file',
+               line_number: 2
+             } == catch_error(Enum.to_list(stream))
     end
 
     test "dump_to_iodata/1 (unknown separator)" do

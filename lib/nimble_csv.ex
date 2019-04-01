@@ -90,7 +90,7 @@ defmodule NimbleCSV do
   """
 
   defmodule ParseError do
-    defexception [:message]
+    defexception [:message, :line_number]
   end
 
   @doc """
@@ -209,6 +209,9 @@ defmodule NimbleCSV do
 
       @behaviour NimbleCSV
 
+      require Record
+      Record.defrecordp(:state, [:mode, :line_number])
+
       ## Parser
 
       def parse_stream(stream, opts \\ []) when is_list(opts) do
@@ -256,38 +259,51 @@ defmodule NimbleCSV do
       end
 
       defp init_parser(opts) do
-        state = if Keyword.has_key?(opts, :headers) do
-          IO.warn "the :headers option is deprecated, please use :skip_headers instead"
-          if Keyword.get(opts, :headers, true), do: :header, else: :line
-        else
-          if Keyword.get(opts, :skip_headers, true), do: :header, else: :line
-        end
+        initial_mode =
+          if Keyword.has_key?(opts, :headers) do
+            IO.warn("the :headers option is deprecated, please use :skip_headers instead")
+            if Keyword.get(opts, :headers, true), do: :header, else: :line
+          else
+            if Keyword.get(opts, :skip_headers, true), do: :header, else: :line
+          end
+
+        state = state(mode: initial_mode, line_number: 0)
 
         {state, :binary.compile_pattern(@separator), :binary.compile_pattern(@escape)}
       end
 
-      defp finalize_parser({:escape, _, _, _}) do
-        raise ParseError, "expected escape character #{@escape} but reached the end of file"
+      defp finalize_parser({:escape, _, _, state}) do
+        raise ParseError,
+          message: "expected escape character #{@escape} but reached the end of file",
+          line_number: state(state, :line_number)
       end
 
       defp finalize_parser(_) do
         :ok
       end
 
+      defp to_enum({state(mode: :line) = state, row}) do
+        {[row], state}
+      end
+
+      defp to_enum({state(mode: :header) = state, _}) do
+        {[], state(state, mode: :line)}
+      end
+
       defp to_enum(result) do
-        case result do
-          {:line, row} -> {[row], :line}
-          {:header, _} -> {[], :line}
-          {:escape, _, _, _} = escape -> {[], escape}
-        end
+        {[], result}
       end
 
       defp parse(line, {:escape, entry, row, state}, separator, escape) do
-        to_enum(escape(line, entry, row, state, separator, escape))
+        to_enum(escape(line, entry, row, inc_line_number(state), separator, escape))
       end
 
       defp parse(line, state, separator, escape) do
-        to_enum(separator(line, [], state, separator, escape))
+        to_enum(separator(line, [], inc_line_number(state), separator, escape))
+      end
+
+      defp inc_line_number(state(line_number: line_number) = state) do
+        state(state, line_number: line_number + 1)
       end
 
       defmacrop newlines_separator!() do
@@ -336,7 +352,8 @@ defmodule NimbleCSV do
           quote do
             _ ->
               raise ParseError,
-                    "unexpected escape character #{@escape} in #{inspect(var!(line))}"
+                message: "unexpected escape character #{@escape} in #{inspect(var!(line))}",
+                line_number: state(var!(state), :line_number)
           end
 
         quote do
@@ -402,7 +419,9 @@ defmodule NimbleCSV do
               {var!(state), var!(row) ++ [var!(entry) <> prefix]}
 
             _ ->
-              raise ParseError, "unexpected escape character #{@escape} in #{inspect(var!(line))}"
+              raise ParseError,
+                message: "unexpected escape character #{@escape} in #{inspect(var!(line))}",
+                line_number: state(var!(state), :line_number)
           end
 
         quote do
