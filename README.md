@@ -57,6 +57,7 @@ See the [online documentation](https://hexdocs.pm/nimble_csv) for more informati
 Other nimble libraries by Plataformatec:
 
   * [NimbleParsec](https://github.com/plataformatec/nimble_parsec) - simple and fast parser combinators
+  * [NimbleStrftime](https://github.com/plataformatec/nimble_strftime) - simple and fast strftime-based datetime formatter
 
 ## License
 
