@@ -1,4 +1,4 @@
-# NimbleCSV
+# NimbleCSV [![Hex Version](https://img.shields.io/hexpm/v/nimble_csv.svg)](https://hex.pm/packages/nimble_csv) [![docs](https://img.shields.io/badge/docs-hexpm-blue.svg)](https://hexdocs.pm/nimble_csv/)
 
 NimbleCSV is a simple and extremely fast CSV parsing/dumping library for Elixir. Its performance comes from allowing developers to define custom parsers/dumpers which rely on binary patterns for efficiency:
 
@@ -40,7 +40,7 @@ See the [online documentation](https://hexdocs.pm/nimble_csv) for more informati
 
         ```elixir
         def deps do
-          [{:nimble_csv, "~> 0.3"}]
+          [{:nimble_csv, "~> 0.6"}]
         end
         ```
 
