@@ -28,7 +28,7 @@ defmodule NimbleCSV.Mixfile do
     [
       main: "NimbleCSV",
       source_ref: "v#{@version}",
-      source_url: "https://github.com/plataformatec/nimble_csv"
+      source_url: "https://github.com/dashbitco/nimble_csv"
     ]
   end
 
@@ -36,7 +36,7 @@ defmodule NimbleCSV.Mixfile do
     %{
       licenses: ["Apache 2"],
       maintainers: ["José Valim"],
-      links: %{"GitHub" => "https://github.com/plataformatec/nimble_csv"}
+      links: %{"GitHub" => "https://github.com/dashbitco/nimble_csv"}
     }
   end
 end

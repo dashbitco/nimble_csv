@@ -54,14 +54,15 @@ See the [online documentation](https://hexdocs.pm/nimble_csv) for more informati
 
 ## Nimble*
 
-Other nimble libraries by Plataformatec:
+Other nimble libraries by Dashbit:
 
-  * [NimbleParsec](https://github.com/plataformatec/nimble_parsec) - simple and fast parser combinators
-  * [NimbleStrftime](https://github.com/plataformatec/nimble_strftime) - simple and fast strftime-based datetime formatter
+  * [NimbleParsec](https://github.com/dashbitco/nimble_parsec) - simple and fast parser combinators
+  * [NimblePool](https://github.com/dashbitco/nimble_strftime) - simple and small resource-pool
 
 ## License
 
 Copyright 2016 Plataformatec
+Copyright 2020 Dashbit
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
