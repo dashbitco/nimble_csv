@@ -57,7 +57,7 @@ See the [online documentation](https://hexdocs.pm/nimble_csv) for more informati
 Other nimble libraries by Dashbit:
 
   * [NimbleParsec](https://github.com/dashbitco/nimble_parsec) - simple and fast parser combinators
-  * [NimblePool](https://github.com/dashbitco/nimble_strftime) - simple and small resource-pool
+  * [NimblePool](https://github.com/dashbitco/nimble_pool) - simple and small resource-pool
 
 ## License
 
