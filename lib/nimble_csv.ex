@@ -42,14 +42,19 @@ defmodule NimbleCSV do
         %{name: name, age: String.to_integer(age)}
       end)
 
-  By default this library ships with `NimbleCSV.RFC4180`, which
-  is the most common implementation of CSV parsing/dumping available
-  using comma as separators and double-quote as escape. If you
-  want to use it in your codebase, simply alias it to CSV and enjoy:
+  By default this library ships with two implementations:
 
-      iex> alias NimbleCSV.RFC4180, as: CSV
-      iex> CSV.parse_string "name,age\njohn,27"
-      [["john","27"]]
+    * `NimbleCSV.RFC4180`, which is the most common implementation of
+      CSV parsing/dumping available using comma as separators and
+      double-quote as escape. If you want to use it in your codebase,
+      simply alias it to CSV and enjoy:
+
+          iex> alias NimbleCSV.RFC4180, as: CSV
+          iex> CSV.parse_string "name,age\njohn,27"
+          [["john","27"]]
+
+    * `NimbleCSV.Spreadsheet`, which uses UTF-16 and is most commonly
+      used by spreadsheet software, such as Excel, Numbers, etc.
 
   ### Binary references
 
