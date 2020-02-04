@@ -144,31 +144,23 @@ defmodule NimbleCSVTest do
 
   test "parse_string/2 with encoding" do
     assert ExcelFriendly.parse_string(
-             :unicode.characters_to_binary(
-               """
-               name\tage
-               "doe\tjohn"\t27
-               jane\t28
-               """,
-               :utf8,
-               {:utf16, :little}
-             )
+             utf16le("""
+             name\tage
+             "doe\tjohn"\t27
+             jane\t28
+             """)
            ) == [
              ["doe\tjohn", "27"],
              ["jane", "28"]
            ]
 
     assert ExcelFriendly.parse_string(
-             :unicode.encoding_to_bom({:utf16, :little}) <>
-               :unicode.characters_to_binary(
-                 """
-                 name\tage
-                 "doe\tjohn"\t27
-                 jane\t28
-                 """,
-                 :utf8,
-                 {:utf16, :little}
-               )
+             utf16le_bom() <>
+               utf16le("""
+               name\tage
+               "doe\tjohn"\t27
+               jane\t28
+               """)
            ) == [
              ["doe\tjohn", "27"],
              ["jane", "28"]
@@ -199,16 +191,8 @@ defmodule NimbleCSVTest do
                  end
 
     assert ExcelFriendly.parse_enumerable([
-             :unicode.characters_to_binary(
-               "name\tage\n",
-               :utf8,
-               {:utf16, :little}
-             ),
-             :unicode.characters_to_binary(
-               "\"doe\tjohn\"\t27\n",
-               :utf8,
-               {:utf16, :little}
-             )
+             utf16le("name\tage\n"),
+             utf16le("\"doe\tjohn\"\t27\n")
            ]) == [
              ["doe\tjohn", "27"]
            ]
@@ -251,16 +235,8 @@ defmodule NimbleCSVTest do
 
     stream =
       [
-        :unicode.characters_to_binary(
-          "name\tlast\tyear\n",
-          :utf8,
-          {:utf16, :little}
-        ),
-        :unicode.characters_to_binary(
-          "john\tdoe\t1986\n",
-          :utf8,
-          {:utf16, :little}
-        )
+        utf16le("name\tlast\tyear\n"),
+        utf16le("john\tdoe\t1986\n")
       ]
       |> Stream.map(&String.upcase/1)
 
@@ -292,15 +268,11 @@ defmodule NimbleCSVTest do
            """
 
     assert IO.iodata_to_binary(ExcelFriendly.dump_to_iodata([["name", "age"], ["doe\tjohn", 27]])) ==
-             :unicode.encoding_to_bom({:utf16, :little}) <>
-               :unicode.characters_to_binary(
-                 """
-                 name\tage
-                 "doe\tjohn"\t27
-                 """,
-                 :utf8,
-                 {:utf16, :little}
-               )
+             utf16le_bom() <>
+               utf16le("""
+               name\tage
+               "doe\tjohn"\t27
+               """)
   end
 
   test "dump_to_stream/1" do
@@ -328,15 +300,11 @@ defmodule NimbleCSVTest do
     assert IO.iodata_to_binary(
              Enum.to_list(ExcelFriendly.dump_to_stream([["name", "age"], ["john\tnick", 27]]))
            ) ==
-             :unicode.encoding_to_bom({:utf16, :little}) <>
-               :unicode.characters_to_binary(
-                 """
-                 name\tage
-                 "john\tnick"\t27
-                 """,
-                 :utf8,
-                 {:utf16, :little}
-               )
+             utf16le_bom() <>
+               utf16le("""
+               name\tage
+               "john\tnick"\t27
+               """)
   end
 
   describe "multiple separators" do
@@ -466,4 +434,7 @@ defmodule NimbleCSVTest do
   else
     defp string_trim(str), do: String.strip(str)
   end
+
+  defp utf16le(binary), do: :unicode.characters_to_binary(binary, :utf8, {:utf16, :little})
+  defp utf16le_bom(), do: :unicode.encoding_to_bom({:utf16, :little})
 end
