@@ -2,6 +2,7 @@ defmodule NimbleCSVTest do
   use ExUnit.Case
 
   alias NimbleCSV.RFC4180, as: CSV
+  alias NimbleCSV.ExcelFriendly
 
   test "parse_string/2" do
     assert CSV.parse_string("""
@@ -223,6 +224,17 @@ defmodule NimbleCSVTest do
            name,age
            "doe, john",27
            """
+
+    assert IO.iodata_to_binary(ExcelFriendly.dump_to_iodata([["name", "age"], ["doe\tjohn", 27]])) ==
+             :unicode.encoding_to_bom({:utf16, :little}) <>
+               :unicode.characters_to_binary(
+                 """
+                 name\tage
+                 "doe\tjohn"\t27
+                 """,
+                 :utf8,
+                 {:utf16, :little}
+               )
   end
 
   test "dump_to_stream/1" do
@@ -246,6 +258,19 @@ defmodule NimbleCSVTest do
            name,age
            "john ""nick"" doe",27
            """
+
+    assert IO.iodata_to_binary(
+             Enum.to_list(ExcelFriendly.dump_to_stream([["name", "age"], ["john\tnick", 27]]))
+           ) ==
+             :unicode.encoding_to_bom({:utf16, :little}) <>
+               :unicode.characters_to_binary(
+                 """
+                 name\tage
+                 "john\tnick"\t27
+                 """,
+                 :utf8,
+                 {:utf16, :little}
+               )
   end
 
   describe "multiple separators" do

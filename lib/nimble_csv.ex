@@ -206,6 +206,9 @@ defmodule NimbleCSV do
       @line_separator Keyword.get(options, :line_separator, "\n")
       @newlines Keyword.get(options, :newlines, ["\r\n", "\n"])
       @reserved Keyword.get(options, :reserved, [@escape, @line_separator | @separator])
+      @encoding Keyword.get(options, :encoding, :utf8)
+      @dump_with_bom Keyword.get(options, :dump_with_bom, false)
+      @bom :unicode.encoding_to_bom(@encoding)
 
       @behaviour NimbleCSV
 
@@ -426,12 +429,18 @@ defmodule NimbleCSV do
 
       def dump_to_iodata(enumerable) do
         check = init_dumper()
-        Enum.map(enumerable, &dump(&1, check))
+
+        enumerable
+        |> Enum.map(&dump(&1, check))
+        |> maybe_prepend_bom(@dump_with_bom)
       end
 
       def dump_to_stream(enumerable) do
         check = init_dumper()
-        Stream.map(enumerable, &dump(&1, check))
+
+        enumerable
+        |> Stream.map(&dump(&1, check))
+        |> maybe_prepend_bom(@dump_with_bom)
       end
 
       @escape_minimum (case @escape do
@@ -440,13 +449,13 @@ defmodule NimbleCSV do
                        end)
 
       @separator_minimum (case @separator do
-                            [<<x>> | _] -> x
-                            [x | _] -> x
+                            [<<x>> | _] -> <<x>>
+                            [x | _] -> <<x>>
                           end)
 
       @line_separator_minimum (case @line_separator do
-                                 <<x>> -> x
-                                 x -> x
+                                 <<x>> -> <<x>>
+                                 x -> <<x>>
                                end)
 
       @replacement @escape <> @escape
@@ -456,15 +465,15 @@ defmodule NimbleCSV do
       end
 
       defp dump([], _check) do
-        [@line_separator_minimum]
+        [encode(@line_separator_minimum)]
       end
 
       defp dump([entry], check) do
-        [maybe_escape(entry, check), @line_separator_minimum]
+        [encode(maybe_escape(entry, check)), encode(@line_separator_minimum)]
       end
 
       defp dump([entry | entries], check) do
-        [maybe_escape(entry, check), @separator_minimum | dump(entries, check)]
+        [encode(maybe_escape(entry, check)), encode(@separator_minimum) | dump(entries, check)]
       end
 
       defp maybe_escape(entry, check) do
@@ -480,6 +489,27 @@ defmodule NimbleCSV do
         end
       end
 
+      defp encode(data) do
+        encode(data, @encoding)
+      end
+
+      defp encode(data, :utf8), do: data
+
+      defp encode(data, encoding),
+        do: :unicode.characters_to_binary(to_string(data), :utf8, encoding)
+
+      defp maybe_prepend_bom(data, false) do
+        data
+      end
+
+      defp maybe_prepend_bom(list, true) when is_list(list) do
+        [@bom, list]
+      end
+
+      defp maybe_prepend_bom(stream, true) do
+        Stream.concat([@bom], stream)
+      end
+
       @compile {:inline, init_dumper: 0, maybe_escape: 2}
     end
   end
@@ -490,5 +520,20 @@ NimbleCSV.define(NimbleCSV.RFC4180,
   escape: "\"",
   moduledoc: """
   A CSV parser that uses comma as separator and double-quotes as escape according to RFC4180.
+  """
+)
+
+NimbleCSV.define(NimbleCSV.ExcelFriendly,
+  separator: "\t",
+  escape: "\"",
+  encoding: {:utf16, :little},
+  dump_with_bom: true,
+  moduledoc: """
+  A CSV parser with Excel Friendly settings.
+
+  The parser  uses tab as separator and double-quotes as escape. It's also encoded
+  in UTF-16 little-endian with a byte-order BOM, so Excel can open the result by
+  a plain double-click on a file. It should open fine on other Tabular Software as
+  well.
   """
 )
