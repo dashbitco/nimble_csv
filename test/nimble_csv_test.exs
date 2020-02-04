@@ -142,6 +142,39 @@ defmodule NimbleCSVTest do
                  end
   end
 
+  test "parse_string/2 with encoding" do
+    assert ExcelFriendly.parse_string(
+             :unicode.characters_to_binary(
+               """
+               name\tage
+               "doe\tjohn"\t27
+               jane\t28
+               """,
+               :utf8,
+               {:utf16, :little}
+             )
+           ) == [
+             ["doe\tjohn", "27"],
+             ["jane", "28"]
+           ]
+
+    assert ExcelFriendly.parse_string(
+             :unicode.encoding_to_bom({:utf16, :little}) <>
+               :unicode.characters_to_binary(
+                 """
+                 name\tage
+                 "doe\tjohn"\t27
+                 jane\t28
+                 """,
+                 :utf8,
+                 {:utf16, :little}
+               )
+           ) == [
+             ["doe\tjohn", "27"],
+             ["jane", "28"]
+           ]
+  end
+
   test "parse_enumerable/2" do
     assert CSV.parse_enumerable([
              "name,last,year\n",
@@ -164,6 +197,21 @@ defmodule NimbleCSVTest do
                      "john,doe,\"1986\n"
                    ])
                  end
+
+    assert ExcelFriendly.parse_enumerable([
+             :unicode.characters_to_binary(
+               "name\tage\n",
+               :utf8,
+               {:utf16, :little}
+             ),
+             :unicode.characters_to_binary(
+               "\"doe\tjohn\"\t27\n",
+               :utf8,
+               {:utf16, :little}
+             )
+           ]) == [
+             ["doe\tjohn", "27"]
+           ]
   end
 
   test "parse_stream/2" do
@@ -200,6 +248,24 @@ defmodule NimbleCSVTest do
                  fn ->
                    Enum.to_list(stream)
                  end
+
+    stream =
+      [
+        :unicode.characters_to_binary(
+          "name\tlast\tyear\n",
+          :utf8,
+          {:utf16, :little}
+        ),
+        :unicode.characters_to_binary(
+          "john\tdoe\t1986\n",
+          :utf8,
+          {:utf16, :little}
+        )
+      ]
+      |> Stream.map(&String.upcase/1)
+
+    assert ExcelFriendly.parse_stream(stream, skip_headers: false) |> Enum.to_list() ==
+             [~w(NAME LAST YEAR), ~w(JOHN DOE 1986)]
   end
 
   test "dump_to_iodata/1" do

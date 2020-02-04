@@ -220,12 +220,18 @@ defmodule NimbleCSV do
         Stream.transform(
           stream,
           fn -> state end,
-          &parse(&1, &2, separator, escape),
+          &parse(transform_to_utf8(&1, @encoding), &2, separator, escape),
           &finalize_parser/1
         )
       end
 
       def parse_enumerable(enumerable, opts \\ []) when is_list(opts) do
+        enumerable
+        |> Enum.map(&transform_to_utf8(&1, @encoding))
+        |> parse_enumerable_utf8(opts)
+      end
+
+      defp parse_enumerable_utf8(enumerable, opts) when is_list(opts) do
         {state, separator, escape} = init_parser(opts)
 
         {lines, state} =
@@ -237,6 +243,8 @@ defmodule NimbleCSV do
 
       def parse_string(string, opts \\ []) when is_binary(string) and is_list(opts) do
         newline = :binary.compile_pattern(@newlines)
+
+        string = transform_to_utf8(string, @encoding)
 
         {0, byte_size(string)}
         |> Stream.unfold(fn
@@ -255,7 +263,19 @@ defmodule NimbleCSV do
                 {binary_part(string, offset, length), {offset + length, 0}}
             end
         end)
-        |> parse_enumerable(opts)
+        |> parse_enumerable_utf8(opts)
+      end
+
+      defp transform_to_utf8(string, :utf8) do
+        string
+      end
+
+      defp transform_to_utf8(@bom <> string, encoding) do
+        :unicode.characters_to_binary(string, encoding, :utf8)
+      end
+
+      defp transform_to_utf8(string, encoding) do
+        :unicode.characters_to_binary(string, encoding, :utf8)
       end
 
       defp init_parser(opts) do
