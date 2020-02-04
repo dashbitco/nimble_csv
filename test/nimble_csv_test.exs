@@ -2,7 +2,7 @@ defmodule NimbleCSVTest do
   use ExUnit.Case
 
   alias NimbleCSV.RFC4180, as: CSV
-  alias NimbleCSV.ExcelFriendly
+  alias NimbleCSV.Spreadsheet
 
   test "parse_string/2" do
     assert CSV.parse_string("""
@@ -32,7 +32,7 @@ defmodule NimbleCSVTest do
 
   test "parse_string/2 without trailing new line" do
     assert CSV.parse_string(
-             string_trim("""
+             String.trim("""
              name,last,year
              john,doe,1986
              mary,jane,1985
@@ -143,7 +143,7 @@ defmodule NimbleCSVTest do
   end
 
   test "parse_string/2 with encoding" do
-    assert ExcelFriendly.parse_string(
+    assert Spreadsheet.parse_string(
              utf16le("""
              name\tage
              "doe\tjohn"\t27
@@ -154,7 +154,7 @@ defmodule NimbleCSVTest do
              ["jane", "28"]
            ]
 
-    assert ExcelFriendly.parse_string(
+    assert Spreadsheet.parse_string(
              utf16le_bom() <>
                utf16le("""
                name\tage
@@ -190,7 +190,7 @@ defmodule NimbleCSVTest do
                    ])
                  end
 
-    assert ExcelFriendly.parse_enumerable([
+    assert Spreadsheet.parse_enumerable([
              utf16le("name\tage\n"),
              utf16le("\"doe\tjohn\"\t27\n")
            ]) == [
@@ -240,7 +240,7 @@ defmodule NimbleCSVTest do
       ]
       |> Stream.map(&String.upcase/1)
 
-    assert ExcelFriendly.parse_stream(stream, skip_headers: false) |> Enum.to_list() ==
+    assert Spreadsheet.parse_stream(stream, skip_headers: false) |> Enum.to_list() ==
              [~w(NAME LAST YEAR), ~w(JOHN DOE 1986)]
   end
 
@@ -267,7 +267,7 @@ defmodule NimbleCSVTest do
            "doe, john",27
            """
 
-    assert IO.iodata_to_binary(ExcelFriendly.dump_to_iodata([["name", "age"], ["doe\tjohn", 27]])) ==
+    assert IO.iodata_to_binary(Spreadsheet.dump_to_iodata([["name", "age"], ["doe\tjohn", 27]])) ==
              utf16le_bom() <>
                utf16le("""
                name\tage
@@ -298,7 +298,7 @@ defmodule NimbleCSVTest do
            """
 
     assert IO.iodata_to_binary(
-             Enum.to_list(ExcelFriendly.dump_to_stream([["name", "age"], ["john\tnick", 27]]))
+             Enum.to_list(Spreadsheet.dump_to_stream([["name", "age"], ["john\tnick", 27]]))
            ) ==
              utf16le_bom() <>
                utf16le("""
@@ -424,15 +424,6 @@ defmodule NimbleCSVTest do
              "jane; mary",1985
              """) == [["doe, john", "1986"], ["jane; mary", "1985"]]
     end
-  end
-
-  # TODO: Remove once we depend on Elixir 1.3 and on.
-  Code.ensure_loaded(String)
-
-  if function_exported?(String, :trim, 1) do
-    defp string_trim(str), do: String.trim(str)
-  else
-    defp string_trim(str), do: String.strip(str)
   end
 
   defp utf16le(binary), do: :unicode.characters_to_binary(binary, :utf8, {:utf16, :little})

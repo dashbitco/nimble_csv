@@ -169,18 +169,25 @@ defmodule NimbleCSV do
   The following options control parsing:
 
     * `:escape`- the CSV escape, defaults to `"\""`
+    * `:encoding` - converts the given data from encoding to UTF-8
     * `:separator`- the CSV separators, defaults to `","`. It can be
       a string or a list of strings. If a list is given, the first entry
       is used for dumping (see below)
     * `:newlines` - the list of entries to be considered newlines
       when parsing, defaults to `["\r\n", "\n"]` (note they are attempted
       in order, so the order matters)
+    * `:trim_bom` - automatically trims BOM (byte-order marker) when parsing
+      string. Note the bom is not trimmed for enumerables or streams. In such
+      cases, the BOM must be trimmed directly in the stream, such as
+      `File.stream!(path, [:trim_bom])`
 
   The following options control dumping:
 
     * `:escape`- the CSV escape character, defaults to `"\""`
+    * `:encoding` - converts the given data from UTF-8 to the given encoding
     * `:separator`- the CSV separator character, defaults to `","`
     * `:line_separator` - the CSV line separator character, defaults to `"\n"`
+    * `:dump_bom` - includes BOM (byte order marker) in the dumped document
     * `:reserved` - the list of characters to be escaped, it defaults to the
       `:separator`, `:line_separator` and `:escape` characters above.
 
@@ -197,7 +204,9 @@ defmodule NimbleCSV do
   """
   def define(module, options) do
     defmodule module do
+      @behaviour NimbleCSV
       @moduledoc Keyword.get(options, :moduledoc)
+
       @escape Keyword.get(options, :escape, "\"")
       @separator (case Keyword.get(options, :separator, ",") do
                     many when is_list(many) -> many
@@ -206,11 +215,58 @@ defmodule NimbleCSV do
       @line_separator Keyword.get(options, :line_separator, "\n")
       @newlines Keyword.get(options, :newlines, ["\r\n", "\n"])
       @reserved Keyword.get(options, :reserved, [@escape, @line_separator | @separator])
-      @encoding Keyword.get(options, :encoding, :utf8)
-      @dump_with_bom Keyword.get(options, :dump_with_bom, false)
-      @bom :unicode.encoding_to_bom(@encoding)
 
-      @behaviour NimbleCSV
+      # BOM and Encoding related
+
+      encoding = Keyword.get(options, :encoding, :utf8)
+      @bom :unicode.encoding_to_bom(encoding)
+      @encoding encoding
+      @encoded_newlines Enum.map(@newlines, &:unicode.characters_to_binary(&1, :utf8, encoding))
+
+      if Keyword.get(options, :trim_bom, false) do
+        defp maybe_trim_bom(@bom <> string), do: string
+        defp maybe_trim_bom(string), do: string
+      else
+        defp maybe_trim_bom(string), do: string
+      end
+
+      if Keyword.get(options, :dump_bom, false) do
+        defp maybe_dump_bom(list) when is_list(list), do: [@bom | list]
+        defp maybe_dump_bom(stream), do: Stream.concat([@bom], stream)
+      else
+        defp maybe_dump_bom(data), do: data
+      end
+
+      if encoding == :utf8 do
+        defp maybe_to_utf8(line), do: line
+        defp maybe_to_encoding(line), do: line
+      else
+        defp maybe_to_utf8(line) do
+          case :unicode.characters_to_binary(line, @encoding, :utf8) do
+            binary when is_binary(binary) ->
+              binary
+
+            reason ->
+              raise "error converting #{inspect(@encoding)} to :utf8, got: #{inspect(reason)}"
+          end
+        end
+
+        defp maybe_to_encoding(line) do
+          case :unicode.characters_to_binary(line, :utf8, @encoding) do
+            binary when is_binary(binary) ->
+              binary
+
+            reason ->
+              raise "error converting :utf8 to #{inspect(@encoding)}, got: #{inspect(reason)}"
+          end
+        end
+      end
+
+      _ = @bom
+      _ = @encoding
+
+      @compile {:inline,
+                maybe_dump_bom: 1, maybe_trim_bom: 1, maybe_to_utf8: 1, maybe_to_encoding: 1}
 
       ## Parser
 
@@ -220,31 +276,28 @@ defmodule NimbleCSV do
         Stream.transform(
           stream,
           fn -> state end,
-          &parse(transform_to_utf8(&1, @encoding), &2, separator, escape),
+          &parse(maybe_to_utf8(&1), &2, separator, escape),
           &finalize_parser/1
         )
       end
 
       def parse_enumerable(enumerable, opts \\ []) when is_list(opts) do
-        enumerable
-        |> Enum.map(&transform_to_utf8(&1, @encoding))
-        |> parse_enumerable_utf8(opts)
-      end
-
-      defp parse_enumerable_utf8(enumerable, opts) when is_list(opts) do
         {state, separator, escape} = init_parser(opts)
 
         {lines, state} =
-          Enum.flat_map_reduce(enumerable, state, &parse(&1, &2, separator, escape))
+          Enum.flat_map_reduce(
+            enumerable,
+            state,
+            &parse(maybe_to_utf8(&1), &2, separator, escape)
+          )
 
         finalize_parser(state)
         lines
       end
 
       def parse_string(string, opts \\ []) when is_binary(string) and is_list(opts) do
-        newline = :binary.compile_pattern(@newlines)
-
-        string = transform_to_utf8(string, @encoding)
+        newline = :binary.compile_pattern(@encoded_newlines)
+        string = string |> maybe_trim_bom()
 
         {0, byte_size(string)}
         |> Stream.unfold(fn
@@ -263,28 +316,17 @@ defmodule NimbleCSV do
                 {binary_part(string, offset, length), {offset + length, 0}}
             end
         end)
-        |> parse_enumerable_utf8(opts)
-      end
-
-      defp transform_to_utf8(string, :utf8) do
-        string
-      end
-
-      defp transform_to_utf8(@bom <> string, encoding) do
-        :unicode.characters_to_binary(string, encoding, :utf8)
-      end
-
-      defp transform_to_utf8(string, encoding) do
-        :unicode.characters_to_binary(string, encoding, :utf8)
+        |> parse_enumerable(opts)
       end
 
       defp init_parser(opts) do
-        state = if Keyword.has_key?(opts, :headers) do
-          IO.warn "the :headers option is deprecated, please use :skip_headers instead"
-          if Keyword.get(opts, :headers, true), do: :header, else: :line
-        else
-          if Keyword.get(opts, :skip_headers, true), do: :header, else: :line
-        end
+        state =
+          if Keyword.has_key?(opts, :headers) do
+            IO.warn("the :headers option is deprecated, please use :skip_headers instead")
+            if Keyword.get(opts, :headers, true), do: :header, else: :line
+          else
+            if Keyword.get(opts, :skip_headers, true), do: :header, else: :line
+          end
 
         {state, :binary.compile_pattern(@separator), :binary.compile_pattern(@escape)}
       end
@@ -452,7 +494,7 @@ defmodule NimbleCSV do
 
         enumerable
         |> Enum.map(&dump(&1, check))
-        |> maybe_prepend_bom(@dump_with_bom)
+        |> maybe_dump_bom()
       end
 
       def dump_to_stream(enumerable) do
@@ -460,22 +502,26 @@ defmodule NimbleCSV do
 
         enumerable
         |> Stream.map(&dump(&1, check))
-        |> maybe_prepend_bom(@dump_with_bom)
+        |> maybe_dump_bom()
       end
 
-      @escape_minimum (case @escape do
+      @encoded_escape (case @escape
+                            |> :unicode.characters_to_binary(:utf8, encoding) do
                          <<x>> -> x
                          x -> x
                        end)
 
-      @separator_minimum (case @separator do
-                            [<<x>> | _] -> <<x>>
-                            [x | _] -> <<x>>
+      @encoded_separator (case @separator
+                               |> hd()
+                               |> :unicode.characters_to_binary(:utf8, encoding) do
+                            <<x>> -> x
+                            x -> x
                           end)
 
-      @line_separator_minimum (case @line_separator do
-                                 <<x>> -> <<x>>
-                                 x -> <<x>>
+      @encoded_line_separator (case @line_separator
+                                    |> :unicode.characters_to_binary(:utf8, encoding) do
+                                 <<x>> -> x
+                                 x -> x
                                end)
 
       @replacement @escape <> @escape
@@ -485,15 +531,15 @@ defmodule NimbleCSV do
       end
 
       defp dump([], _check) do
-        [encode(@line_separator_minimum)]
+        [@encoded_line_separator]
       end
 
       defp dump([entry], check) do
-        [encode(maybe_escape(entry, check)), encode(@line_separator_minimum)]
+        [maybe_escape(entry, check), @encoded_line_separator]
       end
 
       defp dump([entry | entries], check) do
-        [encode(maybe_escape(entry, check)), encode(@separator_minimum) | dump(entries, check)]
+        [maybe_escape(entry, check), @encoded_separator | dump(entries, check)]
       end
 
       defp maybe_escape(entry, check) do
@@ -502,32 +548,11 @@ defmodule NimbleCSV do
         case :binary.match(entry, check) do
           {_, _} ->
             replaced = :binary.replace(entry, @escape, @replacement, [:global])
-            [@escape_minimum, replaced, @escape_minimum]
+            [@encoded_escape, maybe_to_encoding(replaced), @encoded_escape]
 
           :nomatch ->
-            entry
+            maybe_to_encoding(entry)
         end
-      end
-
-      defp encode(data) do
-        encode(data, @encoding)
-      end
-
-      defp encode(data, :utf8), do: data
-
-      defp encode(data, encoding),
-        do: :unicode.characters_to_binary(to_string(data), :utf8, encoding)
-
-      defp maybe_prepend_bom(data, false) do
-        data
-      end
-
-      defp maybe_prepend_bom(list, true) when is_list(list) do
-        [@bom, list]
-      end
-
-      defp maybe_prepend_bom(stream, true) do
-        Stream.concat([@bom], stream)
       end
 
       @compile {:inline, init_dumper: 0, maybe_escape: 2}
@@ -543,17 +568,17 @@ NimbleCSV.define(NimbleCSV.RFC4180,
   """
 )
 
-NimbleCSV.define(NimbleCSV.ExcelFriendly,
+NimbleCSV.define(NimbleCSV.Spreadsheet,
   separator: "\t",
   escape: "\"",
   encoding: {:utf16, :little},
-  dump_with_bom: true,
+  trim_bom: true,
+  dump_bom: true,
   moduledoc: """
-  A CSV parser with Excel Friendly settings.
+  A parser with spreadsheet friendly settings.
 
-  The parser  uses tab as separator and double-quotes as escape. It's also encoded
-  in UTF-16 little-endian with a byte-order BOM, so Excel can open the result by
-  a plain double-click on a file. It should open fine on other Tabular Software as
-  well.
+  The parser uses tab as separator and double-quotes as escape, as required by
+  common spreadsheet softwtare such as Excel, Numbers and OpenOffice. It's encoded
+  in UTF-16 little-endian with a byte-order BOM.
   """
 )
