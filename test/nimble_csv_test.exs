@@ -2,6 +2,7 @@ defmodule NimbleCSVTest do
   use ExUnit.Case
 
   alias NimbleCSV.RFC4180, as: CSV
+  alias NimbleCSV.ExcelFriendly
 
   test "parse_string/2" do
     assert CSV.parse_string("""
@@ -141,6 +142,31 @@ defmodule NimbleCSVTest do
                  end
   end
 
+  test "parse_string/2 with encoding" do
+    assert ExcelFriendly.parse_string(
+             utf16le("""
+             name\tage
+             "doe\tjohn"\t27
+             jane\t28
+             """)
+           ) == [
+             ["doe\tjohn", "27"],
+             ["jane", "28"]
+           ]
+
+    assert ExcelFriendly.parse_string(
+             utf16le_bom() <>
+               utf16le("""
+               name\tage
+               "doe\tjohn"\t27
+               jane\t28
+               """)
+           ) == [
+             ["doe\tjohn", "27"],
+             ["jane", "28"]
+           ]
+  end
+
   test "parse_enumerable/2" do
     assert CSV.parse_enumerable([
              "name,last,year\n",
@@ -163,6 +189,13 @@ defmodule NimbleCSVTest do
                      "john,doe,\"1986\n"
                    ])
                  end
+
+    assert ExcelFriendly.parse_enumerable([
+             utf16le("name\tage\n"),
+             utf16le("\"doe\tjohn\"\t27\n")
+           ]) == [
+             ["doe\tjohn", "27"]
+           ]
   end
 
   test "parse_stream/2" do
@@ -199,6 +232,16 @@ defmodule NimbleCSVTest do
                  fn ->
                    Enum.to_list(stream)
                  end
+
+    stream =
+      [
+        utf16le("name\tlast\tyear\n"),
+        utf16le("john\tdoe\t1986\n")
+      ]
+      |> Stream.map(&String.upcase/1)
+
+    assert ExcelFriendly.parse_stream(stream, skip_headers: false) |> Enum.to_list() ==
+             [~w(NAME LAST YEAR), ~w(JOHN DOE 1986)]
   end
 
   test "dump_to_iodata/1" do
@@ -223,6 +266,13 @@ defmodule NimbleCSVTest do
            name,age
            "doe, john",27
            """
+
+    assert IO.iodata_to_binary(ExcelFriendly.dump_to_iodata([["name", "age"], ["doe\tjohn", 27]])) ==
+             utf16le_bom() <>
+               utf16le("""
+               name\tage
+               "doe\tjohn"\t27
+               """)
   end
 
   test "dump_to_stream/1" do
@@ -246,6 +296,15 @@ defmodule NimbleCSVTest do
            name,age
            "john ""nick"" doe",27
            """
+
+    assert IO.iodata_to_binary(
+             Enum.to_list(ExcelFriendly.dump_to_stream([["name", "age"], ["john\tnick", 27]]))
+           ) ==
+             utf16le_bom() <>
+               utf16le("""
+               name\tage
+               "john\tnick"\t27
+               """)
   end
 
   describe "multiple separators" do
@@ -375,4 +434,7 @@ defmodule NimbleCSVTest do
   else
     defp string_trim(str), do: String.strip(str)
   end
+
+  defp utf16le(binary), do: :unicode.characters_to_binary(binary, :utf8, {:utf16, :little})
+  defp utf16le_bom(), do: :unicode.encoding_to_bom({:utf16, :little})
 end
