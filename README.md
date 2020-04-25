@@ -1,4 +1,6 @@
-# NimbleCSV [![Hex Version](https://img.shields.io/hexpm/v/nimble_csv.svg)](https://hex.pm/packages/nimble_csv) [![docs](https://img.shields.io/badge/docs-hexpm-blue.svg)](https://hexdocs.pm/nimble_csv/)
+# NimbleCSV
+
+[Online documentation](https://hexdocs.pm/nimble_csv/).
 
 NimbleCSV is a simple and extremely fast CSV parsing/dumping library for Elixir. Its performance comes from allowing developers to define custom parsers/dumpers which rely on binary patterns for efficiency:
 
@@ -54,10 +56,12 @@ See the [online documentation](https://hexdocs.pm/nimble_csv) for more informati
 
 ## Nimble*
 
-Other nimble libraries by Dashbit:
+All nimble libraries by Dashbit:
 
+  * [NimbleCSV](https://github.com/dashbitco/nimble_csv) - simple and fast CSV parsing
+  * [NimbleOptions](https://github.com/dashbitco/nimble_options) - tiny library for validating and documenting high-level options
   * [NimbleParsec](https://github.com/dashbitco/nimble_parsec) - simple and fast parser combinators
-  * [NimblePool](https://github.com/dashbitco/nimble_pool) - simple and small resource-pool
+  * [NimblePool](https://github.com/dashbitco/nimble_pool) - tiny resource-pool implementation
 
 ## License
 
