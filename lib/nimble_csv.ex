@@ -28,7 +28,7 @@ defmodule NimbleCSV do
       "name\tage\njohn\t27"
       |> MyParser.parse_string
       |> Enum.map(fn [name, age] ->
-        %{name: name, age: String.to_integer(age)}
+        %{name: :binary.copy(name), age: String.to_integer(age)}
       end)
 
   This is particularly useful with the parse_stream functionality
@@ -39,7 +39,7 @@ defmodule NimbleCSV do
       |> File.stream!(read_ahead: 100_000)
       |> MyParser.parse_stream
       |> Stream.map(fn [name, age] ->
-        %{name: name, age: String.to_integer(age)}
+        %{name: :binary.copy(name), age: String.to_integer(age)}
       end)
 
   By default this library ships with two implementations:
@@ -67,20 +67,8 @@ defmodule NimbleCSV do
   NimbleCSV will return a list of `["one", "two", "three", "four", "five"]`
   where each element references the original row. For this reason, if
   you plan to keep the parsed data around in the parsing process or even
-  send it to another process, you may want to copy the data before doing
-  the transfer.
-
-  For example, in the `parse_stream` example in the previous section,
-  we could rewrite the `Stream.map/2` operation to explicitly copy any
-  field that is stored as a binary:
-
-      "path/to/csv/file"
-      |> File.stream!(read_ahead: 100_000)
-      |> MyParser.parse_stream
-      |> Stream.map(fn [name, age] ->
-        %{name: :binary.copy(name),
-          age: String.to_integer(age)}
-      end)
+  send it to another process, you must copy the data before doing the transfer,
+  that's why we use `:binary.copy/1` in the examples above.
 
   ## Dumping
 
