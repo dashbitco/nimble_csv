@@ -28,7 +28,7 @@ defmodule NimbleCSV do
       "name\tage\njohn\t27"
       |> MyParser.parse_string
       |> Enum.map(fn [name, age] ->
-        %{name: :binary.copy(name), age: String.to_integer(age)}
+        %{name: name, age: String.to_integer(age)}
       end)
 
   This is particularly useful with the parse_stream functionality

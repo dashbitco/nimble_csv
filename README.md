@@ -22,7 +22,7 @@ NimbleCSV provides both eager and lazy (streaming) parsing as well as data dumpi
 |> File.stream!
 |> MyParser.parse_stream
 |> Stream.map(fn [name, age] ->
-  %{name: name, age: String.to_integer(age)}
+  %{name: :binary.copy(name), age: String.to_integer(age)}
 end)
 ```
 
