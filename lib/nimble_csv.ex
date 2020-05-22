@@ -41,6 +41,7 @@ defmodule NimbleCSV do
       |> Stream.map(fn [name, age] ->
         %{name: :binary.copy(name), age: String.to_integer(age)}
       end)
+      |> Stream.run
 
   By default this library ships with two implementations:
 

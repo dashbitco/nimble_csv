@@ -24,6 +24,7 @@ NimbleCSV provides both eager and lazy (streaming) parsing as well as data dumpi
 |> Stream.map(fn [name, age] ->
   %{name: :binary.copy(name), age: String.to_integer(age)}
 end)
+|> Stream.run
 ```
 
 By default this library ships with `NimbleCSV.RFC4180`, which is the most common implementation of CSV parsing/dumping available using comma as separators and double-quote as escape. If you want to use it in your codebase, simply alias it to CSV and enjoy:
