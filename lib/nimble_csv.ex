@@ -196,7 +196,7 @@ defmodule NimbleCSV do
   the callbacks for this behaviour for information on the generated functions
   and their documentation.
   """
-  def define(module, options) do
+  def define(module, options \\ []) do
     defmodule module do
       @behaviour NimbleCSV
       @moduledoc Keyword.get(options, :moduledoc)
