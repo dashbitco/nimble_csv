@@ -123,6 +123,9 @@ defmodule NimbleCSV do
   @doc """
   Lazily parses CSV from a stream and returns a stream of rows.
 
+  It expects the given enumerable to be line-oriented, where each
+  entry in the enumerable is a line.
+
   ## Options
 
     * `:skip_headers` - when `true`, skips headers. Defaults to `true`.
