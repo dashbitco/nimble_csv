@@ -317,14 +317,7 @@ defmodule NimbleCSV do
       end
 
       defp init_parser(opts) do
-        state =
-          if Keyword.has_key?(opts, :headers) do
-            IO.warn("the :headers option is deprecated, please use :skip_headers instead")
-            if Keyword.get(opts, :headers, true), do: :header, else: :line
-          else
-            if Keyword.get(opts, :skip_headers, true), do: :header, else: :line
-          end
-
+        state = if Keyword.get(opts, :skip_headers, true), do: :header, else: :line
         {state, :binary.compile_pattern(@separator), :binary.compile_pattern(@escape)}
       end
 

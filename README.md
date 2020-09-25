@@ -39,21 +39,15 @@ See the [online documentation](https://hexdocs.pm/nimble_csv) for more informati
 
 ## Installation
 
-  1. Add `nimble_csv` to your list of dependencies in `mix.exs`:
+Add `nimble_csv` to your list of dependencies in `mix.exs`:
 
-        ```elixir
-        def deps do
-          [{:nimble_csv, "~> 0.7"}]
-        end
-        ```
-
-  2. If using Elixir < 1.4, ensure `nimble_csv` is started before your application:
-
-        ```elixir
-        def application do
-          [applications: [:nimble_csv]]
-        end
-        ```
+```elixir
+def deps do
+  [
+    {:nimble_csv, "~> 1.0"}
+  ]
+end
+```
 
 ## Nimble*
 
