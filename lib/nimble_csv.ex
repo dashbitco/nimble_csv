@@ -186,7 +186,7 @@ defmodule NimbleCSV do
     * `:line_separator` - the CSV line separator character, defaults to `"\n"`
     * `:dump_bom` - includes BOM (byte order marker) in the dumped document
     * `:reserved` - the list of characters to be escaped, it defaults to the
-      `:separator`, `:line_separator` and `:escape` characters above.
+      `:separator`, `:newlines` and `:escape` characters above.
 
   Although parsing may support multiple newline delimiters, when
   dumping only one of them must be picked, which is controlled by
@@ -205,13 +205,23 @@ defmodule NimbleCSV do
       @moduledoc Keyword.get(options, :moduledoc)
 
       @escape Keyword.get(options, :escape, "\"")
+
       @separator (case Keyword.get(options, :separator, ",") do
                     many when is_list(many) -> many
                     one when is_binary(one) -> [one]
                   end)
+
       @line_separator Keyword.get(options, :line_separator, "\n")
+
       @newlines Keyword.get(options, :newlines, ["\r\n", "\n"])
-      @reserved Keyword.get(options, :reserved, [@escape, @line_separator | @separator])
+
+      @reserved Enum.uniq(
+                  Keyword.get(
+                    options,
+                    :reserved,
+                    [@escape, @line_separator] ++ @separator ++ @newlines
+                  )
+                )
 
       # BOM and Encoding related
 
@@ -553,6 +563,7 @@ end
 NimbleCSV.define(NimbleCSV.RFC4180,
   separator: ",",
   escape: "\"",
+  line_separator: "\r\n",
   moduledoc: """
   A CSV parser that uses comma as separator and double-quotes as escape according to RFC4180.
   """

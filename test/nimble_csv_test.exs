@@ -246,25 +246,25 @@ defmodule NimbleCSVTest do
 
   test "dump_to_iodata/1" do
     assert IO.iodata_to_binary(CSV.dump_to_iodata([["name", "age"], ["john", 27]])) == """
-           name,age
-           john,27
+           name,age\r\n\
+           john,27\r\n\
            """
 
     assert IO.iodata_to_binary(CSV.dump_to_iodata([["name", "age"], ["john\ndoe", 27]])) == """
-           name,age
+           name,age\r\n\
            "john
-           doe",27
+           doe",27\r\n\
            """
 
     assert IO.iodata_to_binary(CSV.dump_to_iodata([["name", "age"], ["john \"nick\" doe", 27]])) ==
              """
-             name,age
-             "john ""nick"" doe",27
+             name,age\r\n\
+             "john ""nick"" doe",27\r\n\
              """
 
     assert IO.iodata_to_binary(CSV.dump_to_iodata([["name", "age"], ["doe, john", 27]])) == """
-           name,age
-           "doe, john",27
+           name,age\r\n\
+           "doe, john",27\r\n\
            """
 
     assert IO.iodata_to_binary(Spreadsheet.dump_to_iodata([["name", "age"], ["doe\tjohn", 27]])) ==
@@ -278,23 +278,23 @@ defmodule NimbleCSVTest do
   test "dump_to_stream/1" do
     assert IO.iodata_to_binary(Enum.to_list(CSV.dump_to_stream([["name", "age"], ["john", 27]]))) ==
              """
-             name,age
-             john,27
+             name,age\r\n\
+             john,27\r\n\
              """
 
     assert IO.iodata_to_binary(
              Enum.to_list(CSV.dump_to_stream([["name", "age"], ["john\ndoe", 27]]))
            ) == """
-           name,age
+           name,age\r\n\
            "john
-           doe",27
+           doe",27\r\n\
            """
 
     assert IO.iodata_to_binary(
              Enum.to_list(CSV.dump_to_stream([["name", "age"], ["john \"nick\" doe", 27]]))
            ) == """
-           name,age
-           "john ""nick"" doe",27
+           name,age\r\n\
+           "john ""nick"" doe",27\r\n\
            """
 
     assert IO.iodata_to_binary(
