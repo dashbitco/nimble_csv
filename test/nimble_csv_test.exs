@@ -426,6 +426,42 @@ defmodule NimbleCSVTest do
     end
   end
 
+  test "to_line_stream/2" do
+    stream = [
+      "name,last,year\n",
+      "john,doe,1986\n",
+      "jane,",
+      "doe,1987\n",
+      "james,doe,1992\nryan,doe",
+      ",1893"
+    ]
+
+    assert [
+             "name,last,year\n",
+             "john,doe,1986\n",
+             "jane,doe,1987\n",
+             "james,doe,1992\n",
+             "ryan,doe,1893"
+           ] = CSV.to_line_stream(stream) |> Enum.into([])
+
+    assert [~w(john doe 1986) | _] =
+             CSV.to_line_stream(stream) |> CSV.parse_stream() |> Enum.to_list()
+
+    stream =
+      [
+        "name\tlast\tyear\n",
+        "john\tdoe\t1986\n",
+        "jane\t",
+        "doe\t1987\n",
+        "james\tdoe\t1992\nryan\tdoe",
+        "\t1893"
+      ]
+      |> Stream.map(&utf16le/1)
+
+    assert [~w(john doe 1986) | _] =
+             Spreadsheet.to_line_stream(stream) |> Spreadsheet.parse_stream() |> Enum.to_list()
+  end
+
   defp utf16le(binary), do: :unicode.characters_to_binary(binary, :utf8, {:utf16, :little})
   defp utf16le_bom(), do: :unicode.encoding_to_bom({:utf16, :little})
 end

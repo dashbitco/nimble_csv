@@ -124,7 +124,8 @@ defmodule NimbleCSV do
   Lazily parses CSV from a stream and returns a stream of rows.
 
   It expects the given enumerable to be line-oriented, where each
-  entry in the enumerable is a line.
+  entry in the enumerable is a line. If your stream does not conform
+  to that you can call `c:to_line_stream/1` before parsing the stream.
 
   ## Options
 
@@ -149,6 +150,14 @@ defmodule NimbleCSV do
 
   """
   @callback parse_string(binary(), opts :: keyword()) :: [[binary()]]
+
+  @doc """
+  Lazily convert a stream of arbitrarily chunked binaries to a line-oriented one.
+
+  This is useful for places where a CSV cannot be streamed in a
+  line-oriented fashion from its source.
+  """
+  @callback to_line_stream(stream :: Enumerable.t()) :: Enumerable.t()
 
   @doc ~S"""
   Defines a new parser/dumper.
@@ -325,6 +334,53 @@ defmodule NimbleCSV do
         end)
         |> parse_enumerable(opts)
       end
+
+      def to_line_stream(stream) do
+        newline = :binary.compile_pattern(@encoded_newlines)
+
+        stream
+        |> Stream.chunk_while(
+          "",
+          &to_line_stream_chunk_fun(&1, &2, newline),
+          &to_line_stream_after_fun/1
+        )
+        |> Stream.concat()
+      end
+
+      defp to_line_stream_chunk_fun(element, acc, newline) do
+        to_try = acc <> element
+        {elements, acc} = chunk_by_newline(to_try, newline, [], {0, byte_size(to_try)})
+        {:cont, elements, acc}
+      end
+
+      @spec chunk_by_newline(binary, :binary.cp(), list(binary), tuple) :: {list(binary), binary}
+      defp chunk_by_newline(string, newline, elements, search_area)
+
+      defp chunk_by_newline(_string, _newline, elements, {_offset, 0}) do
+        {Enum.reverse(elements), ""}
+      end
+
+      defp chunk_by_newline(string, newline, elements, {offset, length}) do
+        case :binary.match(string, newline, scope: {offset, length}) do
+          {newline_offset, newline_length} ->
+            difference = newline_length + newline_offset - offset
+
+            element = binary_part(string, offset, difference)
+
+            chunk_by_newline(
+              string,
+              newline,
+              [element | elements],
+              {newline_offset + newline_length, length - difference}
+            )
+
+          :nomatch ->
+            {Enum.reverse(elements), binary_part(string, offset, length)}
+        end
+      end
+
+      defp to_line_stream_after_fun(""), do: {:cont, []}
+      defp to_line_stream_after_fun(acc), do: {:cont, [acc], []}
 
       defp init_parser(opts) do
         state = if Keyword.get(opts, :skip_headers, true), do: :header, else: :line
