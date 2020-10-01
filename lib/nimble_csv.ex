@@ -124,7 +124,8 @@ defmodule NimbleCSV do
   Lazily parses CSV from a stream and returns a stream of rows.
 
   It expects the given enumerable to be line-oriented, where each
-  entry in the enumerable is a line.
+  entry in the enumerable is a line. If your stream does not conform
+  to that you can call `c:to_line_stream/1` before parsing the stream.
 
   ## Options
 
@@ -149,6 +150,14 @@ defmodule NimbleCSV do
 
   """
   @callback parse_string(binary(), opts :: keyword()) :: [[binary()]]
+
+  @doc """
+  Lazily convert a stream of arbitrarily chunked binaries to a line-oriented one.
+
+  This is useful for places where a CSV cannot be streamed in a
+  line based fashion from its source.
+  """
+  @callback to_line_stream(stream :: Enumerable.t()) :: Enumerable.t()
 
   @doc ~S"""
   Defines a new parser/dumper.
