@@ -344,10 +344,8 @@ defmodule NimbleCSV do
           &to_line_stream_chunk_fun(&1, &2, newline),
           &to_line_stream_after_fun/1
         )
-        |> Stream.flat_map(&identity/1)
+        |> Stream.concat()
       end
-
-      defp identity(x), do: x
 
       defp to_line_stream_chunk_fun(element, acc, newline) do
         to_try = acc <> element
