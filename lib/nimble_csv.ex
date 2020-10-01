@@ -155,7 +155,7 @@ defmodule NimbleCSV do
   Lazily convert a stream of arbitrarily chunked binaries to a line-oriented one.
 
   This is useful for places where a CSV cannot be streamed in a
-  line based fashion from its source.
+  line-oriented fashion from its source.
   """
   @callback to_line_stream(stream :: Enumerable.t()) :: Enumerable.t()
 
@@ -344,8 +344,10 @@ defmodule NimbleCSV do
           &to_line_stream_chunk_fun(&1, &2, newline),
           &to_line_stream_after_fun/1
         )
-        |> Stream.flat_map(&Function.identity/1)
+        |> Stream.flat_map(&identity/1)
       end
+
+      defp identity(x), do: x
 
       defp to_line_stream_chunk_fun(element, acc, newline) do
         to_try = acc <> element
