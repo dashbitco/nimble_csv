@@ -4,14 +4,14 @@ defmodule NimbleCSVTest do
   alias NimbleCSV.RFC4180, as: CSV
   alias NimbleCSV.Spreadsheet
 
-  test "parse_string/2" do
+  test "parse_string/2 without headers" do
     assert CSV.parse_string("""
            name,last,year
            john,doe,1986
            """) == [~w(john doe 1986)]
   end
 
-  test "parse_string/2 without headers" do
+  test "parse_string/2 with headers" do
     assert CSV.parse_string(
              """
              name,last,year
