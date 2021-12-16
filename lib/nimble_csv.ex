@@ -196,9 +196,9 @@ defmodule NimbleCSV do
     * `:dump_bom` - includes BOM (byte order marker) in the dumped document
     * `:reserved` - the list of characters to be escaped, it defaults to the
       `:separator`, `:newlines` and `:escape` characters above.
-    * `:escape_formula` - the escape character for formulas, defaults to `nil`
-       which results in formulas not being escaped. Setting this ca help
-       mitigate CSV injection. `?'` or `?\t` are common options.
+    * `:escape_formula` - the formula prefix(es) and formula escape sequence.
+       Defaults to `nil` which disabled formula escaping. `{~w(@ + - =), "\t"}`
+       would escape all fields starting with `@`, `+`, `-` or `=` using `\t`.
 
   Although parsing may support multiple newline delimiters, when
   dumping only one of them must be picked, which is controlled by
@@ -210,6 +210,23 @@ defmodule NimbleCSV do
   Modules defined with `define/2` implement the `NimbleCSV` behaviour. See
   the callbacks for this behaviour for information on the generated functions
   and their documentation.
+
+  ## CSV Injection
+  By default, the dumper does not escape values which some clients may interpret
+  as formulas or commands. This can result in
+  [CSV injection](https://owasp.org/www-community/attacks/CSV_Injection). There
+  is no universally correct way to handle CSV injections. In some cases, you may
+  want formulas to be preserved: you may want a cell to have a value of
+  `=SUM(...)`. Furthermore, a simple prefix match is used to "detect" formulas,
+  which could result in false-positives. Finally, the only way to escape these
+  values is by materially changing them by prefixing a tab or single quote.
+
+  The `escape_formula` option will add a prefix to any value which has the
+  configured prefix (e.g. it will prepend `\t` to any value which begins with
+  `@`, `+`, `-` or `=`). Applications that want more control over this process,
+  to allow formulas in specific cases, or possibly minimize false positives,
+  should leave this option disabled and escape the value, as necessary, within
+  their code.
   """
   def define(module, options) do
     defmodule module do
@@ -283,9 +300,17 @@ defmodule NimbleCSV do
       end
 
       if @escape_formula != nil do
-        defp maybe_escape_formulas(<<first, _::binary>> ) when first in [?=, ?+, ?-, ?@], do: @escape_formula
+        @escape_formula_pattern elem(@escape_formula, 0)
+        @escape_formula_prefix elem(@escape_formula, 1)
+        defp maybe_escape_formulas(data) do
+          case String.starts_with?(data, @escape_formula_pattern) do
+            true -> @escape_formula_prefix
+            false -> []
+          end
+        end
+      else
+        defp maybe_escape_formulas(_data), do: []
       end
-      defp maybe_escape_formulas(_data), do: []
 
       _ = @bom
       _ = @encoding
