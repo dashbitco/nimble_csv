@@ -212,14 +212,14 @@ defmodule NimbleCSV do
   and their documentation.
 
   ## CSV Injection
+
   By default, the dumper does not escape values which some clients may interpret
   as formulas or commands. This can result in
-  [CSV injection](https://owasp.org/www-community/attacks/CSV_Injection). There
-  is no universally correct way to handle CSV injections. In some cases, you may
-  want formulas to be preserved: you may want a cell to have a value of
-  `=SUM(...)`. Furthermore, a simple prefix match is used to "detect" formulas,
-  which could result in false-positives. Finally, the only way to escape these
-  values is by materially changing them by prefixing a tab or single quote.
+  [CSV injection](https://owasp.org/www-community/attacks/CSV_Injection).
+  There is no universally correct way to handle CSV injections. In some cases,
+  you may want formulas to be preserved: you may want a cell to have a value of
+  `=SUM(...)`. The only way to escape these values is by materially changing
+  them by prefixing a tab or single quote, which can also lead to false positives.
 
   The `escape_formula` option will add a prefix to any value which has the
   configured prefix (e.g. it will prepend `\t` to any value which begins with
