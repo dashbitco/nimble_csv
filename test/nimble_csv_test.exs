@@ -3,6 +3,7 @@ defmodule NimbleCSVTest do
 
   alias NimbleCSV.RFC4180, as: CSV
   alias NimbleCSV.Spreadsheet
+  NimbleCSV.define(EscapedDumper, escape_formula: ?', line_separator: "\r\n")
 
   test "parse_string/2 without headers" do
     assert CSV.parse_string("""
@@ -273,6 +274,19 @@ defmodule NimbleCSVTest do
                name\tage
                "doe\tjohn"\t27
                """)
+
+    assert IO.iodata_to_binary(CSV.dump_to_iodata([["name", "age"], ["goku", "=SUM(5,5)"]])) ==
+             """
+             name,age\r\n\
+             goku,\"=SUM(5,5)\"\r\n\
+             """
+
+    assert IO.iodata_to_binary(
+             EscapedDumper.dump_to_iodata([["name", "age"], ["goku", "=SUM(5,5)"]])
+           ) == """
+           name,age\r\n\
+           goku,\"'=SUM(5,5)\"\r\n\
+           """
   end
 
   test "dump_to_stream/1" do

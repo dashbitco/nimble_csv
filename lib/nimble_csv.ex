@@ -196,6 +196,9 @@ defmodule NimbleCSV do
     * `:dump_bom` - includes BOM (byte order marker) in the dumped document
     * `:reserved` - the list of characters to be escaped, it defaults to the
       `:separator`, `:newlines` and `:escape` characters above.
+    * `:escape_formula` - the escape character for formulas, defaults to `nil`
+       which results in formulas not being escaped. Setting this ca help
+       mitigate CSV injection. `?'` or `?\t` are common options.
 
   Although parsing may support multiple newline delimiters, when
   dumping only one of them must be picked, which is controlled by
@@ -214,6 +217,7 @@ defmodule NimbleCSV do
       @moduledoc Keyword.get(options, :moduledoc)
 
       @escape Keyword.get(options, :escape, "\"")
+      @escape_formula Keyword.get(options, :escape_formula)
 
       @separator (case Keyword.get(options, :separator, ",") do
                     many when is_list(many) -> many
@@ -278,11 +282,16 @@ defmodule NimbleCSV do
         end
       end
 
+      if @escape_formula != nil do
+        defp maybe_escape_formulas(<<first, _::binary>> ) when first in [?=, ?+, ?-, ?@], do: @escape_formula
+      end
+      defp maybe_escape_formulas(_data), do: []
+
       _ = @bom
       _ = @encoding
 
       @compile {:inline,
-                maybe_dump_bom: 1, maybe_trim_bom: 1, maybe_to_utf8: 1, maybe_to_encoding: 1}
+                maybe_dump_bom: 1, maybe_trim_bom: 1, maybe_to_utf8: 1, maybe_to_encoding: 1, maybe_escape_formulas: 1}
 
       ## Parser
 
@@ -604,10 +613,10 @@ defmodule NimbleCSV do
         case :binary.match(entry, check) do
           {_, _} ->
             replaced = :binary.replace(entry, @escape, @replacement, [:global])
-            [@encoded_escape, maybe_to_encoding(replaced), @encoded_escape]
+            [@encoded_escape, maybe_escape_formulas(entry), maybe_to_encoding(replaced), @encoded_escape]
 
           :nomatch ->
-            maybe_to_encoding(entry)
+            [maybe_escape_formulas(entry), maybe_to_encoding(entry)]
         end
       end
 
