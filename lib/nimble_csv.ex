@@ -300,7 +300,7 @@ defmodule NimbleCSV do
         end
       end
 
-      defmacro maybe_escape_formulas(entry) do
+      defmacrop maybe_escape_formulas(entry) do
         escapes =
           for {keys, value} <- @escape_formula,
               key <- keys do
