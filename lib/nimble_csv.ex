@@ -309,7 +309,8 @@ defmodule NimbleCSV do
             end
           end
 
-         escapes = List.flatten(escapes) ++ quote do: (_ -> [])
+        escapes = List.flatten(escapes) ++ quote do: (_ -> [])
+
         quote do
           case unquote(entry), do: unquote(escapes)
         end
