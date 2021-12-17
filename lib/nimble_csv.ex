@@ -197,8 +197,9 @@ defmodule NimbleCSV do
     * `:reserved` - the list of characters to be escaped, it defaults to the
       `:separator`, `:newlines` and `:escape` characters above.
     * `:escape_formula` - the formula prefix(es) and formula escape sequence.
-       Defaults to `nil` which disabled formula escaping. `{~w(@ + - =), "\t"}`
-       would escape all fields starting with `@`, `+`, `-` or `=` using `\t`.
+       Defaults to `nil` which disabled formula escaping.
+       `%{~w(@ + - =) => "\t"}` would escape all fields starting with `@`, `+`,
+       `-` or `=` using `\t`.
 
   Although parsing may support multiple newline delimiters, when
   dumping only one of them must be picked, which is controlled by
@@ -234,7 +235,7 @@ defmodule NimbleCSV do
       @moduledoc Keyword.get(options, :moduledoc)
 
       @escape Keyword.get(options, :escape, "\"")
-      @escape_formula Keyword.get(options, :escape_formula)
+      @escape_formula Keyword.get(options, :escape_formula, [])
 
       @separator (case Keyword.get(options, :separator, ",") do
                     many when is_list(many) -> many
@@ -299,24 +300,26 @@ defmodule NimbleCSV do
         end
       end
 
-      if @escape_formula != nil do
-        @escape_formula_pattern elem(@escape_formula, 0)
-        @escape_formula_prefix elem(@escape_formula, 1)
-        defp maybe_escape_formulas(data) do
-          case String.starts_with?(data, @escape_formula_pattern) do
-            true -> @escape_formula_prefix
-            false -> []
+      defmacro maybe_escape_formulas(entry) do
+        escapes =
+          for {keys, value} <- @escape_formula,
+              key <- keys do
+            quote do
+              <<unquote(key) <> _>> -> unquote(value)
+            end
           end
+
+         escapes = List.flatten(escapes) ++ quote do: (_ -> [])
+        quote do
+          case unquote(entry), do: unquote(escapes)
         end
-      else
-        defp maybe_escape_formulas(_data), do: []
       end
 
       _ = @bom
       _ = @encoding
 
       @compile {:inline,
-                maybe_dump_bom: 1, maybe_trim_bom: 1, maybe_to_utf8: 1, maybe_to_encoding: 1, maybe_escape_formulas: 1}
+                maybe_dump_bom: 1, maybe_trim_bom: 1, maybe_to_utf8: 1, maybe_to_encoding: 1}
 
       ## Parser
 
