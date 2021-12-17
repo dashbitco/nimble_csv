@@ -196,6 +196,10 @@ defmodule NimbleCSV do
     * `:dump_bom` - includes BOM (byte order marker) in the dumped document
     * `:reserved` - the list of characters to be escaped, it defaults to the
       `:separator`, `:newlines` and `:escape` characters above.
+    * `:escape_formula` - the formula prefix(es) and formula escape sequence.
+       Defaults to `nil` which disabled formula escaping.
+       `%{~w(@ + - =) => "\t"}` would escape all fields starting with `@`, `+`,
+       `-` or `=` using `\t`.
 
   Although parsing may support multiple newline delimiters, when
   dumping only one of them must be picked, which is controlled by
@@ -207,6 +211,23 @@ defmodule NimbleCSV do
   Modules defined with `define/2` implement the `NimbleCSV` behaviour. See
   the callbacks for this behaviour for information on the generated functions
   and their documentation.
+
+  ## CSV Injection
+
+  By default, the dumper does not escape values which some clients may interpret
+  as formulas or commands. This can result in
+  [CSV injection](https://owasp.org/www-community/attacks/CSV_Injection).
+  There is no universally correct way to handle CSV injections. In some cases,
+  you may want formulas to be preserved: you may want a cell to have a value of
+  `=SUM(...)`. The only way to escape these values is by materially changing
+  them by prefixing a tab or single quote, which can also lead to false positives.
+
+  The `escape_formula` option will add a prefix to any value which has the
+  configured prefix (e.g. it will prepend `\t` to any value which begins with
+  `@`, `+`, `-` or `=`). Applications that want more control over this process,
+  to allow formulas in specific cases, or possibly minimize false positives,
+  should leave this option disabled and escape the value, as necessary, within
+  their code.
   """
   def define(module, options) do
     defmodule module do
@@ -214,6 +235,7 @@ defmodule NimbleCSV do
       @moduledoc Keyword.get(options, :moduledoc)
 
       @escape Keyword.get(options, :escape, "\"")
+      @escape_formula Keyword.get(options, :escape_formula, [])
 
       @separator (case Keyword.get(options, :separator, ",") do
                     many when is_list(many) -> many
@@ -275,6 +297,22 @@ defmodule NimbleCSV do
             reason ->
               raise "error converting :utf8 to #{inspect(@encoding)}, got: #{inspect(reason)}"
           end
+        end
+      end
+
+      defmacrop maybe_escape_formulas(entry) do
+        escapes =
+          for {keys, value} <- @escape_formula,
+              key <- keys do
+            quote do
+              <<unquote(key) <> _>> -> unquote(value)
+            end
+          end
+
+        escapes = List.flatten(escapes) ++ quote do: (_ -> [])
+
+        quote do
+          case unquote(entry), do: unquote(escapes)
         end
       end
 
@@ -604,10 +642,10 @@ defmodule NimbleCSV do
         case :binary.match(entry, check) do
           {_, _} ->
             replaced = :binary.replace(entry, @escape, @replacement, [:global])
-            [@encoded_escape, maybe_to_encoding(replaced), @encoded_escape]
+            [@encoded_escape, maybe_escape_formulas(entry), maybe_to_encoding(replaced), @encoded_escape]
 
           :nomatch ->
-            maybe_to_encoding(entry)
+            [maybe_escape_formulas(entry), maybe_to_encoding(entry)]
         end
       end
 
