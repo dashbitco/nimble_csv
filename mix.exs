@@ -16,10 +16,6 @@ defmodule NimbleCSV.Mixfile do
     ]
   end
 
-  def application do
-    [applications: []]
-  end
-
   defp deps do
     [{:ex_doc, "~> 0.18", only: :docs}]
   end
@@ -34,7 +30,7 @@ defmodule NimbleCSV.Mixfile do
 
   defp package do
     %{
-      licenses: ["Apache 2"],
+      licenses: ["Apache-2.0"],
       maintainers: ["José Valim"],
       links: %{"GitHub" => "https://github.com/dashbitco/nimble_csv"}
     }
