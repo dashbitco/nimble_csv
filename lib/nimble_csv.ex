@@ -235,7 +235,7 @@ defmodule NimbleCSV do
       @moduledoc Keyword.get(options, :moduledoc)
 
       @escape Keyword.get(options, :escape, "\"")
-      @escape_formula Keyword.get(options, :escape_formula, [])
+      @escape_formula Enum.to_list(Keyword.get(options, :escape_formula, []))
 
       @separator (case Keyword.get(options, :separator, ",") do
                     many when is_list(many) -> many
@@ -300,20 +300,24 @@ defmodule NimbleCSV do
         end
       end
 
-      defmacrop maybe_escape_formulas(entry) do
-        escapes =
-          for {keys, value} <- @escape_formula,
-              key <- keys do
-            quote do
-              <<unquote(key) <> _>> -> unquote(value)
+      if @escape_formula != [] do
+        defmacrop maybe_escape_formulas(entry) do
+          escapes =
+            for {keys, value} <- @escape_formula,
+                key <- keys do
+              quote do
+                <<unquote(key) <> _>> -> unquote(value)
+              end
             end
+
+          escapes = List.flatten(escapes) ++ quote do: (_ -> [])
+
+          quote do
+            case unquote(entry), do: unquote(escapes)
           end
-
-        escapes = List.flatten(escapes) ++ quote do: (_ -> [])
-
-        quote do
-          case unquote(entry), do: unquote(escapes)
         end
+      else
+        defmacrop maybe_escape_formulas(_entry), do: []
       end
 
       _ = @bom
