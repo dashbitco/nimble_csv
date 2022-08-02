@@ -1,5 +1,7 @@
 # NimbleCSV
 
+[![CI](https://github.com/dashbitco/nimble_csv/actions/workflows/ci.yml/badge.svg)](https://github.com/dashbitco/nimble_csv/actions/workflows/ci.yml)
+
 [Online documentation](https://hexdocs.pm/nimble_csv/).
 
 NimbleCSV is a simple and extremely fast CSV parsing/dumping library for Elixir. Its performance comes from allowing developers to define custom parsers/dumpers which rely on binary patterns for efficiency:
