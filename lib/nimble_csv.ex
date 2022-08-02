@@ -3,7 +3,7 @@ defmodule NimbleCSV do
   NimbleCSV is a small and fast parsing and dumping library.
 
   It works by building highly-inlined CSV parsers, designed
-  to work with strings, enumerables and streams. At the top
+  to work with strings, enumerables, and streams. At the top
   of your file (and not inside a function), you can define your
   own parser module:
 
@@ -20,9 +20,9 @@ defmodule NimbleCSV do
   ## Parsing
 
   NimbleCSV is by definition restricted in scope to do only
-  parsing (and dumping). For example, the example above
-  discarded the headers when parsing the string, as NimbleCSV
-  expects developers to handle those explicitly later.
+  parsing (and dumping). The example above discarded the
+  headers when parsing the string, as NimbleCSV expects
+  developers to handle those explicitly later.
   For example:
 
       "name\tage\njohn\t27"
@@ -31,7 +31,7 @@ defmodule NimbleCSV do
         %{name: name, age: String.to_integer(age)}
       end)
 
-  This is particularly useful with the parse_stream functionality
+  This is particularly useful with the `c:parse_stream/1` functionality
   that receives and returns a stream. For example, we can use it
   to parse files line by line lazily:
 
@@ -61,7 +61,7 @@ defmodule NimbleCSV do
 
   One of the reasons behind NimbleCSV performance is that it performs
   parsing by matching on binaries and extracting those fields as
-  binary references. Therefore if you have a row such as:
+  binary references. Therefore, if you have a row such as:
 
       one,two,three,four,five
 
@@ -79,7 +79,11 @@ defmodule NimbleCSV do
       "name\tage\nmary\t28\n"
 
       iex> MyParser.dump_to_stream([~w(name age), ~w(mary 28)])
-      #Stream<...>
+      #Stream<[
+        enum: [["name", "age"], ["mary", "28"]],
+        funs: [#Function<47.127921642/1 in Stream.map/2>]
+      ]>
+
 
   """
 
@@ -110,7 +114,7 @@ defmodule NimbleCSV do
   ## Options
 
     * `:skip_headers` - when `true`, skips headers. Defaults to `true`.
-      Set it to false to keep headers or when the CSV has no headers.
+      Set it to `false` to keep headers or when the CSV has no headers.
 
   """
   @callback parse_enumerable(enum :: Enumerable.t(), opts :: keyword()) :: [[binary()]]
@@ -125,12 +129,12 @@ defmodule NimbleCSV do
 
   It expects the given enumerable to be line-oriented, where each
   entry in the enumerable is a line. If your stream does not conform
-  to that you can call `c:to_line_stream/1` before parsing the stream.
+  to that, you can call `c:to_line_stream/1` before parsing the stream.
 
   ## Options
 
     * `:skip_headers` - when `true`, skips headers. Defaults to `true`.
-      Set it to false to keep headers or when the CSV has no headers.
+      Set it to `false` to keep headers or when the CSV has no headers.
 
   """
   @callback parse_stream(enum :: Enumerable.t(), opts :: keyword()) :: Enumerable.t()
@@ -146,7 +150,7 @@ defmodule NimbleCSV do
   ## Options
 
     * `:skip_headers` - when `true`, skips headers. Defaults to `true`.
-      Set it to false to keep headers or when the CSV has no headers.
+      Set it to `false` to keep headers or when the CSV has no headers.
 
   """
   @callback parse_string(binary(), opts :: keyword()) :: [[binary()]]
@@ -162,7 +166,7 @@ defmodule NimbleCSV do
   @doc ~S"""
   Defines a new parser/dumper.
 
-  Calling this function defines a CSV module. Therefore, `define`
+  Calling this function defines a CSV module. Therefore, `define/2`
   is typically invoked at the top of your files and not inside
   functions. Placing it inside a function would cause the same
   module to be defined multiple times, one time per invocation,
@@ -182,9 +186,10 @@ defmodule NimbleCSV do
     * `:newlines` - the list of entries to be considered newlines
       when parsing, defaults to `["\r\n", "\n"]` (note they are attempted
       in order, so the order matters)
-    * `:trim_bom` - automatically trims BOM (byte-order marker) when parsing
-      string. Note the bom is not trimmed for enumerables or streams. In such
-      cases, the BOM must be trimmed directly in the stream, such as
+    * `:trim_bom` - automatically trims
+      [BOM (byte-order marker)](https://en.wikipedia.org/wiki/Byte_order_mark)
+      when parsing string. Note the BOM is not trimmed for enumerables or streams.
+      In such cases, the BOM must be trimmed directly in the stream, such as
       `File.stream!(path, [:trim_bom])`
 
   The following options control dumping:
@@ -194,15 +199,15 @@ defmodule NimbleCSV do
     * `:separator`- the CSV separator character, defaults to `","`
     * `:line_separator` - the CSV line separator character, defaults to `"\n"`
     * `:dump_bom` - includes BOM (byte order marker) in the dumped document
-    * `:reserved` - the list of characters to be escaped, it defaults to the
-      `:separator`, `:newlines` and `:escape` characters above.
-    * `:escape_formula` - the formula prefix(es) and formula escape sequence.
-       Defaults to `nil` which disabled formula escaping.
+    * `:reserved` - the list of characters to be escaped, defaults to the
+      `:separator`, `:newlines`, and `:escape` characters above
+    * `:escape_formula` - the formula prefix(es) and formula escape sequence,
+       defaults to `nil`, which disabled formula escaping
        `%{~w(@ + - =) => "\t"}` would escape all fields starting with `@`, `+`,
-       `-` or `=` using `\t`.
+       `-` or `=` using `\t`
 
   Although parsing may support multiple newline delimiters, when
-  dumping only one of them must be picked, which is controlled by
+  dumping, only one of them must be picked, which is controlled by
   the `:line_separator` option. This allows NimbleCSV to handle both
   `"\r\n"` and `"\n"` when parsing, but only the latter for dumping.
 
