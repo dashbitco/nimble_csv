@@ -46,7 +46,7 @@ Add `nimble_csv` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:nimble_csv, "~> 1.1"}
+    {:nimble_csv, "~> 1.2"}
   ]
 end
 ```
