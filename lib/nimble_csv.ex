@@ -601,10 +601,11 @@ defmodule NimbleCSV do
         |> maybe_dump_bom()
       end
 
-      def dump_to_stream(enumerable, _opts \\ []) do
+      def dump_to_stream(enumerable, opts \\ []) do
+        headers = opts |> Keyword.get(:headers, [])
         check = init_dumper()
 
-        enumerable
+        order_headers(enumerable, headers)
         |> Stream.map(&dump(&1, check))
         |> maybe_dump_bom()
       end
@@ -667,12 +668,10 @@ defmodule NimbleCSV do
 
         theader_number =
           Enum.zip(headers, 0..length(headers))
-          |> IO.inspect(label: "theader_number")
           |> Enum.reduce([], fn {key, _value}, list ->
             list ++
               [
                 Enum.find(header_order, {}, fn {thkey, _} ->
-                  IO.inspect(thkey, label: "theader_number")
                   Atom.to_string(key) == thkey
                 end)
               ]
@@ -680,9 +679,7 @@ defmodule NimbleCSV do
 
         body =
           Enum.map(enumerable, fn line_map ->
-            IO.inspect(line_map, label: "line_map")
             for {_key, val} <- theader_number, into: [] do
-              IO.inspect(val, label: "val")
               Enum.at(line_map, val)
             end
           end)

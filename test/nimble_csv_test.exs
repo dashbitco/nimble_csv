@@ -340,6 +340,15 @@ defmodule NimbleCSVTest do
                name\tage
                "john\tnick"\t27
                """)
+
+    assert IO.iodata_to_binary(
+              Enum.to_list(Spreadsheet.dump_to_stream([["name", "age"], ["john\tnick", 27]], headers: [:age, :name]))
+            ) ==
+              utf16le_bom() <>
+                utf16le("""
+                age\tname
+                27\t"john\tnick"
+                """)
   end
 
   describe "multiple separators" do
