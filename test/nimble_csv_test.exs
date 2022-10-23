@@ -250,7 +250,7 @@ defmodule NimbleCSVTest do
   end
 
   test "dump_to_iodata/1" do
-    assert IO.iodata_to_binary(CSV.dump_to_iodata([["name", "age"], ["john", 27]])) == """
+    assert IO.iodata_to_binary(CSV.dump_to_iodata([["name", "age"], ["john", 27]])) |> IO.inspect(label: "result?") == """
            name,age\r\n\
            john,27\r\n\
            """
@@ -296,6 +296,18 @@ defmodule NimbleCSVTest do
            goku,\"\t=SUM(5,5)\"\r\n\
            vegeta,'@cmd:4\r\n\
            """
+
+    assert IO.iodata_to_binary(
+            EscapedDumper.dump_to_iodata([
+              ["name", "age"],
+              ["goku", "=SUM(5,5)"],
+              ["vegeta", "@cmd:4"]
+            ], headers: [:age, :name])
+          ) == """
+          age,name\r\n\
+          \"\t=SUM(5,5)\",goku\r\n\
+          '@cmd:4,vegeta\r\n\
+          """
   end
 
   test "dump_to_stream/1" do
