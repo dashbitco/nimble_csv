@@ -11,7 +11,7 @@ defmodule NimbleCSV do
 
   Once defined, we can parse data accordingly:
 
-      iex> MyParser.parse_string "name\tage\njohn\t27"
+      iex> MyParser.parse_string("name\tage\njohn\t27")
       [["john","27"]]
 
   See the `define/2` function for the list of functions that
@@ -26,7 +26,7 @@ defmodule NimbleCSV do
   For example:
 
       "name\tage\njohn\t27"
-      |> MyParser.parse_string
+      |> MyParser.parse_string()
       |> Enum.map(fn [name, age] ->
         %{name: name, age: String.to_integer(age)}
       end)
@@ -37,11 +37,11 @@ defmodule NimbleCSV do
 
       "path/to/csv/file"
       |> File.stream!(read_ahead: 100_000)
-      |> MyParser.parse_stream
+      |> MyParser.parse_stream()
       |> Stream.map(fn [name, age] ->
         %{name: :binary.copy(name), age: String.to_integer(age)}
       end)
-      |> Stream.run
+      |> Stream.run()
 
   By default this library ships with two implementations:
 
@@ -51,7 +51,7 @@ defmodule NimbleCSV do
       simply alias it to CSV and enjoy:
 
           iex> alias NimbleCSV.RFC4180, as: CSV
-          iex> CSV.parse_string "name,age\njohn,27"
+          iex> CSV.parse_string("name,age\njohn,27")
           [["john","27"]]
 
     * `NimbleCSV.Spreadsheet`, which uses UTF-16 and is most commonly
