@@ -12,7 +12,7 @@ NimbleCSV is a simple and extremely fast CSV parsing/dumping library for Elixir.
 NimbleCSV.define(MyParser, separator: "\t", escape: "\"")
 
 # Parse the data
-MyParser.parse_string "name\tage\njohn\t27"
+MyParser.parse_string("name\tage\njohn\t27")
 #=> [["john","27"]]
 ```
 
@@ -22,18 +22,18 @@ NimbleCSV provides both eager and lazy (streaming) parsing as well as data dumpi
 # Lazily parses a file stream
 "path/to/file"
 |> File.stream!
-|> MyParser.parse_stream
+|> MyParser.parse_stream()
 |> Stream.map(fn [name, age] ->
   %{name: :binary.copy(name), age: String.to_integer(age)}
 end)
-|> Stream.run
+|> Stream.run()
 ```
 
 By default this library ships with `NimbleCSV.RFC4180`, which is the most common implementation of CSV parsing/dumping available using comma as separators and double-quote as escape. If you want to use it in your codebase, simply alias it to CSV and enjoy:
 
 ```elixir
 alias NimbleCSV.RFC4180, as: CSV
-CSV.parse_string "name,age\njohn,27"
+CSV.parse_string("name,age\njohn,27")
 [["john","27"]]
 ```
 
