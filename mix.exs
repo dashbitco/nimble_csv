@@ -18,7 +18,7 @@ defmodule NimbleCSV.Mixfile do
   end
 
   defp deps do
-    [{:ex_doc, "~> 0.18", only: :docs}]
+    [{:ex_doc, "~> 0.18", only: :docs}, {:benchee, "~> 1.0", only: :dev}]
   end
 
   defp docs do
