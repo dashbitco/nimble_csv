@@ -1,7 +1,7 @@
 sales_csv = "bench/data/10000_sales.csv"
 sales_string = File.read!(sales_csv)
 sales_list = String.split(sales_string, "\n")
-sales_stream = File.stream!(sales_csv)
+sales_stream = Stream.map(sales_list, & &1)
 
 Benchee.run(
   %{
