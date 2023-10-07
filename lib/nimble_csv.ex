@@ -334,31 +334,39 @@ defmodule NimbleCSV do
       ## Parser
 
       def parse_stream(stream, opts \\ []) when is_list(opts) do
-        {state, separator, escape} = init_parser(opts)
+        {state, state_transform, separator, escape} = init_parser(opts)
 
         Stream.transform(
           stream,
           fn -> state end,
-          &parse(maybe_to_utf8(&1), &2, separator, escape),
+          &to_enum(
+            parse(maybe_to_utf8(&1), &2, separator, escape),
+            &2,
+            state_transform
+          ),
           &finalize_parser/1
         )
       end
 
       def parse_enumerable(enumerable, opts \\ []) when is_list(opts) do
-        {state, separator, escape} = init_parser(opts)
+        {state, state_transform, separator, escape} = init_parser(opts)
 
-        {lines, state} =
+        {lines, {user_state, state}} =
           Enum.flat_map_reduce(
             enumerable,
             state,
-            &parse(maybe_to_utf8(&1), &2, separator, escape)
+            &to_enum(
+              parse(maybe_to_utf8(&1), &2, separator, escape),
+              &2,
+              state_transform
+            )
           )
 
-        finalize_parser(state)
-        lines
+        finalize_parser({user_state, state})
+        {lines, user_state}
       end
 
-      def parse_string(string, opts \\ []) when is_binary(string) and is_list(opts) do
+      def parse_string_with_state(string, opts \\ []) when is_binary(string) and is_list(opts) do
         newline = :binary.compile_pattern(@encoded_newlines)
         string = string |> maybe_trim_bom()
 
@@ -380,6 +388,12 @@ defmodule NimbleCSV do
             end
         end)
         |> parse_enumerable(opts)
+      end
+
+      def parse_string(string, opts \\ []) when is_binary(string) and is_list(opts) do
+        {lines, _} = parse_string_with_state(string, opts)
+
+        lines
       end
 
       def to_line_stream(stream) do
@@ -429,12 +443,23 @@ defmodule NimbleCSV do
       defp to_line_stream_after_fun(""), do: {:cont, []}
       defp to_line_stream_after_fun(acc), do: {:cont, [acc], []}
 
+      defp default_state_transform(s, _), do: s
+
       defp init_parser(opts) do
-        state = if Keyword.get(opts, :skip_headers, true), do: :header, else: :line
-        {state, :binary.compile_pattern(@separator), :binary.compile_pattern(@escape)}
+        line_parse_state = if Keyword.get(opts, :skip_headers, true), do: :header, else: :line
+        state_transform_function = case Keyword.get(opts, :state_transform_function, nil) do
+                                     nil -> &default_state_transform/2
+                                     x -> x
+                                   end
+        init_user_state = Keyword.get(opts, :init_user_state, :unused)
+
+        {{init_user_state, line_parse_state},
+         state_transform_function,
+         :binary.compile_pattern(@separator),
+         :binary.compile_pattern(@escape)}
       end
 
-      defp finalize_parser({:escape, _, _, _}) do
+      defp finalize_parser({_user_state, {:escape, _, _, _}}) do
         raise ParseError, "expected escape character #{@escape} but reached the end of file"
       end
 
@@ -442,20 +467,20 @@ defmodule NimbleCSV do
         :ok
       end
 
-      defp to_enum(result) do
+      defp to_enum(result, {user_state, _state}, fstate) do
         case result do
-          {:line, row} -> {[row], :line}
-          {:header, _} -> {[], :line}
-          {:escape, _, _, _} = escape -> {[], escape}
+          {:header, _} -> {[], {fstate.(user_state, :header), :line}}
+          {:line, row} -> {[row], {fstate.(user_state, :line), :line}}
+          {:escape, _, _, _} = escape -> {[], {user_state, escape}}
         end
       end
 
-      defp parse(line, {:escape, entry, row, state}, separator, escape) do
-        to_enum(escape(line, entry, row, state, separator, escape))
+      defp parse(line, {_user_state, {:escape, entry, row, state}}, separator, escape) do
+        escape(line, entry, row, state, separator, escape)
       end
 
-      defp parse(line, state, separator, escape) do
-        to_enum(separator(line, [], state, separator, escape))
+      defp parse(line, {_user_state, state}, separator, escape) do
+        separator(line, [], state, separator, escape)
       end
 
       defmacrop newlines_separator!() do
@@ -588,7 +613,7 @@ defmodule NimbleCSV do
         newlines_escape!(:binary.match(line, escape))
       end
 
-      @compile {:inline, init_parser: 1, to_enum: 1, parse: 4}
+      @compile {:inline, init_parser: 1, to_enum: 3, parse: 4}
 
       ## Dumper
 

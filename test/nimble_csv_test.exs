@@ -176,7 +176,7 @@ defmodule NimbleCSVTest do
     assert CSV.parse_enumerable([
              "name,last,year\n",
              "john,doe,1986\n"
-           ]) == [~w(john doe 1986)]
+           ]) == {[~w(john doe 1986)], :unused}
 
     assert CSV.parse_enumerable(
              [
@@ -184,7 +184,7 @@ defmodule NimbleCSVTest do
                "john,doe,1986\n"
              ],
              skip_headers: false
-           ) == [~w(name last year), ~w(john doe 1986)]
+           ) == {[~w(name last year), ~w(john doe 1986)], :unused}
 
     assert_raise NimbleCSV.ParseError,
                  ~s(expected escape character " but reached the end of file),
@@ -198,9 +198,7 @@ defmodule NimbleCSVTest do
     assert Spreadsheet.parse_enumerable([
              utf16le("name\tage\n"),
              utf16le("\"doe\tjohn\"\t27\n")
-           ]) == [
-             ["doe\tjohn", "27"]
-           ]
+           ]) == {[["doe\tjohn", "27"]], :unused}
   end
 
   test "parse_stream/2" do
@@ -487,4 +485,26 @@ defmodule NimbleCSVTest do
 
   defp utf16le(binary), do: :unicode.characters_to_binary(binary, :utf8, {:utf16, :little})
   defp utf16le_bom(), do: :unicode.encoding_to_bom({:utf16, :little})
+
+  describe "user state management" do
+    NimbleCSV.define(
+      CSVWithUserState,
+      separator: [",", ";", "\t"]
+    )
+
+    test "parse_string_with_state/2" do
+      assert CSVWithUserState.parse_string_with_state("""
+      name,last\tyear
+      john;doe,1986
+      """,
+        [ init_user_state: 0,
+          state_transform_function: fn count, kind ->
+            case kind do
+              :line -> count + 1
+              :header -> count
+            end
+          end
+        ]) == {[~w(john doe 1986)], 1}
+    end
+  end
 end
