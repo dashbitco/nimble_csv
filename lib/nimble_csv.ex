@@ -111,6 +111,8 @@ defmodule NimbleCSV do
   @doc """
   Eagerly parses CSV from an enumerable and returns a list of rows.
 
+  Raises `NimbleCSV.ParseError` for an invalid CSV.
+
   ## Options
 
     * `:skip_headers` - when `true`, skips headers. Defaults to `true`.
@@ -131,6 +133,8 @@ defmodule NimbleCSV do
   entry in the enumerable is a line. If your stream does not conform
   to that, you can call `c:to_line_stream/1` before parsing the stream.
 
+  Raises `NimbleCSV.ParseError` for an invalid CSV.
+
   ## Options
 
     * `:skip_headers` - when `true`, skips headers. Defaults to `true`.
@@ -146,6 +150,8 @@ defmodule NimbleCSV do
 
   @doc """
   Eagerly parses CSV from a string and returns a list of rows.
+
+  Raises `NimbleCSV.ParseError` for an invalid CSV.
 
   ## Options
 
@@ -651,7 +657,13 @@ defmodule NimbleCSV do
         case :binary.match(entry, check) do
           {_, _} ->
             replaced = :binary.replace(entry, @escape, @replacement, [:global])
-            [@encoded_escape, maybe_escape_formulas(entry), maybe_to_encoding(replaced), @encoded_escape]
+
+            [
+              @encoded_escape,
+              maybe_escape_formulas(entry),
+              maybe_to_encoding(replaced),
+              @encoded_escape
+            ]
 
           :nomatch ->
             [maybe_escape_formulas(entry), maybe_to_encoding(entry)]
