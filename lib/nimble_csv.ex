@@ -483,7 +483,7 @@ defmodule NimbleCSV do
           end)
           |> Kernel.++(quote do: (prefix -> prefix))
 
-        quote do
+        quote generated: true do
           offset = byte_size(var!(line))
           unquote(newlines_offsets)
           case var!(line), do: unquote(newlines_clauses)
