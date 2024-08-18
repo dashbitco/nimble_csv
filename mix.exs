@@ -8,7 +8,7 @@ defmodule NimbleCSV.Mixfile do
     [
       app: :nimble_csv,
       version: @version,
-      elixir: "~> 1.5",
+      elixir: "~> 1.6",
       name: "NimbleCSV",
       description: "A simple and fast CSV parsing and dumping library",
       deps: deps(),
