@@ -477,7 +477,7 @@ defmodule NimbleCSV do
           |> Enum.with_index()
           |> Enum.flat_map(fn {newline, i} ->
             quote do
-              <<prefix::size(unquote(Macro.var(:"count#{i}", Elixir)))-binary, unquote(newline)>> ->
+              <<prefix::size(^unquote(Macro.var(:"count#{i}", Elixir)))-binary, unquote(newline)>> ->
                 prefix
             end
           end)
@@ -494,7 +494,7 @@ defmodule NimbleCSV do
         clauses =
           Enum.flat_map(@separator, fn sep ->
             quote do
-              <<prefix::size(var!(pos))-binary, unquote(sep), @escape, rest::binary>> ->
+              <<prefix::size(^var!(pos))-binary, unquote(sep), @escape, rest::binary>> ->
                 escape(
                   rest,
                   "",
@@ -539,7 +539,7 @@ defmodule NimbleCSV do
       defmacrop newlines_escape!(match) do
         newlines_before =
           quote do
-            <<prefix::size(offset)-binary, @escape, @escape, rest::binary>> ->
+            <<prefix::size(^offset)-binary, @escape, @escape, rest::binary>> ->
               escape(
                 rest,
                 var!(entry) <> prefix <> <<@escape>>,
@@ -551,7 +551,7 @@ defmodule NimbleCSV do
           end ++
             Enum.flat_map(@separator, fn sep ->
               quote do
-                <<prefix::size(offset)-binary, @escape, unquote(sep), rest::binary>> ->
+                <<prefix::size(^offset)-binary, @escape, unquote(sep), rest::binary>> ->
                   separator(
                     rest,
                     var!(row) ++ [var!(entry) <> prefix],
@@ -565,14 +565,14 @@ defmodule NimbleCSV do
         newlines_clauses =
           Enum.flat_map(@newlines, fn newline ->
             quote do
-              <<prefix::size(offset)-binary, @escape, unquote(newline)>> ->
+              <<prefix::size(^offset)-binary, @escape, unquote(newline)>> ->
                 {var!(state), var!(row) ++ [var!(entry) <> prefix]}
             end
           end)
 
         newlines_after =
           quote do
-            <<prefix::size(offset)-binary, @escape>> ->
+            <<prefix::size(^offset)-binary, @escape>> ->
               {var!(state), var!(row) ++ [var!(entry) <> prefix]}
 
             _ ->
