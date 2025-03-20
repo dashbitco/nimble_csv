@@ -393,7 +393,10 @@ defmodule NimbleCSVTest do
              """
 
       assert IO.iodata_to_binary(
-               CSVWithUnknownSeparator.dump_to_iodata([["name", "age"], ["john \"nick\" doe", 27]])
+               CSVWithUnknownSeparator.dump_to_iodata([
+                 ["name", "age"],
+                 ["john \"nick\" doe", 27]
+               ])
              ) == """
              name,age
              "john ""nick"" doe",27
