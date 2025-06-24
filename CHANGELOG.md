@@ -1,5 +1,12 @@
 # Changelog for NimbleCSV
 
+## v1.3.0 (2025-06-24)
+
+  * Require Elixir 1.15+
+  * Add `generated: true` to `newlines_separator` macro
+  * Fix warnings on Elixir 1.20+
+  * Document OWASP official recommendations for CSV injections
+
 ## v1.2.0 (2021-12-17)
 
   * Add `to_line_stream/1` for converting streams into line-oriented ones
