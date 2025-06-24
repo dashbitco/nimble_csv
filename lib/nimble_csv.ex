@@ -209,8 +209,8 @@ defmodule NimbleCSV do
       `:separator`, `:newlines`, and `:escape` characters above
     * `:escape_formula` - the formula prefix(es) and formula escape sequence,
        defaults to `nil`, which disabled formula escaping
-       `%{~w(@ + - =) => "\t"}` would escape all fields starting with `@`, `+`,
-       `-` or `=` using `\t`
+       `%{["@", "+", "-", "=", "\t", "\r"] => "'"}` would escape all fields starting
+       with `@`, `+`, `-`, `=`, tab or carriage return using the `'` character.
 
   Although parsing may support multiple newline delimiters, when
   dumping, only one of them must be picked, which is controlled by
@@ -228,17 +228,22 @@ defmodule NimbleCSV do
   By default, the dumper does not escape values which some clients may interpret
   as formulas or commands. This can result in
   [CSV injection](https://owasp.org/www-community/attacks/CSV_Injection).
+
   There is no universally correct way to handle CSV injections. In some cases,
   you may want formulas to be preserved: you may want a cell to have a value of
   `=SUM(...)`. The only way to escape these values is by materially changing
   them by prefixing a tab or single quote, which can also lead to false positives.
 
   The `escape_formula` option will add a prefix to any value which has the
-  configured prefix (e.g. it will prepend `\t` to any value which begins with
-  `@`, `+`, `-` or `=`). Applications that want more control over this process,
-  to allow formulas in specific cases, or possibly minimize false positives,
-  should leave this option disabled and escape the value, as necessary, within
-  their code.
+  configured prefix (e.g. it will prepend `'` to any value which begins with
+  `@`, `+`, `-`, `=`, tab or carriage return). Use the following config to
+  follow the [OWASP recommendations](https://owasp.org/www-community/attacks/CSV_Injection):
+
+      escape_formula: %{["@", "+", "-", "=", "\t", "\r"] => "'"}
+
+  Applications that want more control over this process, to allow formulas in specific
+  cases, or possibly minimize false positives, should leave this option disabled and
+  escape the value, as necessary, within their code.
   """
   def define(module, options) do
     defmodule module do
