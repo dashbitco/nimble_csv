@@ -9,6 +9,15 @@ defmodule NimbleCSVTest do
     line_separator: "\r\n"
   )
 
+  NimbleCSV.define(
+    DerivedParser,
+    CSV.options()
+    |> Keyword.merge(
+      escape_formula: %{~w(@ + - = \t \r) => "'"},
+      moduledoc: "Test parser based on RFC4180"
+    )
+  )
+
   test "parse_string/2 without headers" do
     assert CSV.parse_string("""
            name,last,year
@@ -486,6 +495,39 @@ defmodule NimbleCSVTest do
 
     assert [~w(john doe 1986) | _] =
              Spreadsheet.to_line_stream(stream) |> Spreadsheet.parse_stream() |> Enum.to_list()
+  end
+
+  test "options/0 returns the original options" do
+    # Test that RFC4180 has the expected options
+    rfc4180_options = CSV.options()
+    assert Keyword.get(rfc4180_options, :separator) == ","
+    assert Keyword.get(rfc4180_options, :escape) == "\""
+    assert Keyword.get(rfc4180_options, :line_separator) == "\r\n"
+
+    # Test that Spreadsheet has the expected options
+    spreadsheet_options = Spreadsheet.options()
+    assert Keyword.get(spreadsheet_options, :separator) == "\t"
+    assert Keyword.get(spreadsheet_options, :encoding) == {:utf16, :little}
+    assert Keyword.get(spreadsheet_options, :trim_bom) == true
+    assert Keyword.get(spreadsheet_options, :dump_bom) == true
+  end
+
+  test "creating a new parser based on existing options" do
+    # Verify the new parser has the combined options
+    test_options = DerivedParser.options()
+    assert Keyword.get(test_options, :separator) == ","
+    assert Keyword.get(test_options, :escape) == "\""
+    assert Keyword.get(test_options, :escape_formula) == %{~w(@ + - = \t \r) => "'"}
+    assert Keyword.get(test_options, :moduledoc) == "Test parser based on RFC4180"
+
+    # Test that the new parser works
+    assert DerivedParser.parse_string("name,value\njohn,123") == [~w(john 123)]
+
+    # Test that formula escaping is applied
+    data = [~w(name formula), ["test", "@SUM(A1:A2)"]]
+    result = DerivedParser.dump_to_iodata(data)
+    dumped = IO.iodata_to_binary(result)
+    assert dumped == "name,formula\r\ntest,'@SUM(A1:A2)\r\n"
   end
 
   defp utf16le(binary), do: :unicode.characters_to_binary(binary, :utf8, {:utf16, :little})
