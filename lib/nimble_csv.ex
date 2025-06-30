@@ -92,6 +92,27 @@ defmodule NimbleCSV do
   end
 
   @doc """
+  Returns the options used to define this parser/dumper module.
+
+  This function allows you to retrieve the original options and use them
+  as a base for defining new modules with modified options.
+
+  ## Examples
+
+      # Create a new parser based on RFC4180 but with formula escaping
+      NimbleCSV.define(
+        MyApp.CSV,
+        NimbleCSV.RFC4180.options()
+        |> Keyword.merge(
+          escape_formula: %{~w(@ + - = \\t \\r) => "'"},
+          moduledoc: "RFC4180 with formula escaping"
+        )
+      )
+
+  """
+  @callback options() :: keyword()
+
+  @doc """
   Eagerly dumps an enumerable into iodata (a list of binaries and bytes and other lists).
   """
   @callback dump_to_iodata(rows :: Enumerable.t()) :: iodata()
@@ -207,10 +228,10 @@ defmodule NimbleCSV do
     * `:dump_bom` - includes BOM (byte order marker) in the dumped document
     * `:reserved` - the list of characters to be escaped, defaults to the
       `:separator`, `:newlines`, and `:escape` characters above
-    * `:escape_formula` - the formula prefix(es) and formula escape sequence,
-       defaults to `nil`, which disabled formula escaping
-       `%{["@", "+", "-", "=", "\t", "\r"] => "'"}` would escape all fields starting
-       with `@`, `+`, `-`, `=`, tab or carriage return using the `'` character.
+    * `:escape_formula` - an optional map of formula prefixes to escape sequences.
+      When `nil` (the default), formula escaping is disabled. For example,
+      `%{~w(@ + - = \t \r) => "'"}` escapes fields starting with `@`, `+`, `-`, `=`,
+      tab, or carriage return by prefixing them with `'`
 
   Although parsing may support multiple newline delimiters, when
   dumping, only one of them must be picked, which is controlled by
@@ -239,16 +260,26 @@ defmodule NimbleCSV do
   `@`, `+`, `-`, `=`, tab or carriage return). Use the following config to
   follow the [OWASP recommendations](https://owasp.org/www-community/attacks/CSV_Injection):
 
-      escape_formula: %{["@", "+", "-", "=", "\t", "\r"] => "'"}
+      escape_formula: %{~w(@ + - = \t \r) => "'"}
 
   Applications that want more control over this process, to allow formulas in specific
   cases, or possibly minimize false positives, should leave this option disabled and
   escape the value, as necessary, within their code.
+
+  ## Extending existing CSV modules
+
+  Each module defined with `define/2` includes an `c:options/0` function that
+  returns the original options used to create the CSV module. This allows you
+  to easily create new modules based on existing ones. For example, you can
+  extend an existing CSV module to add formula escaping or customize other
+  options as needed.
   """
   def define(module, options) do
     defmodule module do
       @behaviour NimbleCSV
       @moduledoc Keyword.get(options, :moduledoc)
+
+      @original_options options
 
       @escape Keyword.get(options, :escape, "\"")
       @escape_formula Enum.to_list(Keyword.get(options, :escape_formula, []))
@@ -341,6 +372,8 @@ defmodule NimbleCSV do
 
       @compile {:inline,
                 maybe_dump_bom: 1, maybe_trim_bom: 1, maybe_to_utf8: 1, maybe_to_encoding: 1}
+
+      def options, do: @original_options
 
       ## Parser
 
