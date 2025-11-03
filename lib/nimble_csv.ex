@@ -114,6 +114,8 @@ defmodule NimbleCSV do
 
   @doc """
   Eagerly dumps an enumerable into iodata (a list of binaries and bytes and other lists).
+
+  Each value is converted to a string using `String.Chars.to_string/1`.
   """
   @callback dump_to_iodata(rows :: Enumerable.t()) :: iodata()
 
@@ -121,6 +123,8 @@ defmodule NimbleCSV do
   Lazily dumps from an enumerable to a stream.
 
   It returns a stream that emits each row as iodata.
+
+  Each value is converted to a string using `String.Chars.to_string/1`.
   """
   @callback dump_to_stream(rows :: Enumerable.t()) :: Enumerable.t()
 
@@ -690,7 +694,7 @@ defmodule NimbleCSV do
       end
 
       defp maybe_escape(entry, check) do
-        entry = to_string(entry)
+        entry = String.Chars.to_string(entry)
 
         case :binary.match(entry, check) do
           {_, _} ->
