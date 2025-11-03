@@ -315,11 +315,11 @@ defmodule NimbleCSVTest do
              """
 
     assert IO.iodata_to_binary(
-             Enum.to_list(CSV.dump_to_stream([["name", "age"], ["john\ndoe", 27]]))
+             Enum.to_list(CSV.dump_to_stream([["name", "dob"], ["john\ndoe", ~D[1970-01-01]]]))
            ) == """
-           name,age\r\n\
+           name,dob\r\n\
            "john
-           doe",27\r\n\
+           doe",1970-01-01\r\n\
            """
 
     assert IO.iodata_to_binary(
