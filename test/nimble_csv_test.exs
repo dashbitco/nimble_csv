@@ -13,7 +13,7 @@ defmodule NimbleCSVTest do
     DerivedParser,
     CSV.options()
     |> Keyword.merge(
-      escape_formula: %{~w(@ + - = \t \r) => "'"},
+      escape_formula: %{["@", "+", "-", "=", "\t", "\r"] => "'"},
       moduledoc: "Test parser based on RFC4180"
     )
   )
@@ -517,7 +517,11 @@ defmodule NimbleCSVTest do
     test_options = DerivedParser.options()
     assert Keyword.get(test_options, :separator) == ","
     assert Keyword.get(test_options, :escape) == "\""
-    assert Keyword.get(test_options, :escape_formula) == %{~w(@ + - = \t \r) => "'"}
+
+    assert Keyword.get(test_options, :escape_formula) == %{
+             ["@", "+", "-", "=", "\t", "\r"] => "'"
+           }
+
     assert Keyword.get(test_options, :moduledoc) == "Test parser based on RFC4180"
 
     # Test that the new parser works

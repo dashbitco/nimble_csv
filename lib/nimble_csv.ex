@@ -104,7 +104,7 @@ defmodule NimbleCSV do
         MyApp.CSV,
         NimbleCSV.RFC4180.options()
         |> Keyword.merge(
-          escape_formula: %{~w(@ + - = \\t \\r) => "'"},
+          escape_formula: %{["@", "+", "-", "=", "\t", "\r"] => "'"},
           moduledoc: "RFC4180 with formula escaping"
         )
       )
@@ -234,7 +234,7 @@ defmodule NimbleCSV do
       `:separator`, `:newlines`, and `:escape` characters above
     * `:escape_formula` - an optional map of formula prefixes to escape sequences.
       When `nil` (the default), formula escaping is disabled. For example,
-      `%{~w(@ + - = \t \r) => "'"}` escapes fields starting with `@`, `+`, `-`, `=`,
+      `%{["@", "+", "-", "=", "\t", "\r"] => "'"}` escapes fields starting with `@`, `+`, `-`, `=`,
       tab, or carriage return by prefixing them with `'`
 
   Although parsing may support multiple newline delimiters, when
@@ -264,7 +264,7 @@ defmodule NimbleCSV do
   `@`, `+`, `-`, `=`, tab or carriage return). Use the following config to
   follow the [OWASP recommendations](https://owasp.org/www-community/attacks/CSV_Injection):
 
-      escape_formula: %{~w(@ + - = \t \r) => "'"}
+      escape_formula: %{["@", "+", "-", "=", "\t", "\r"] => "'"}
 
   Applications that want more control over this process, to allow formulas in specific
   cases, or possibly minimize false positives, should leave this option disabled and
